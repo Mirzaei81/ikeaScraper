@@ -62,17 +62,17 @@ def get_products_sku():
         ikeaResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=data)
         ikeaData:Welcome9  = ikeaResponse.json()
         if(len(ikeaData["results"])==0):
-            writer.writerow(p["sku"],f"NotFound / discontinued",ikeaResponse.status_code)
+            writer.writerow([p["sku"],f"NotFound / discontinued",ikeaResponse.status_code])
             continue
         isSellable = ikeaData["results"][0]["items"][0]["product"]["onlineSellable"]
         if  not isSellable:
-            writer.writerow(p["sku"],f"Out of Stock : {isSellable}",ikeaResponse.status_code)
+            writer.writerow([p["sku"],f"Out of Stock : {isSellable}",ikeaResponse.status_code])
             continue
         if ikeaResponse.status_code!=200:
-            writer.writerow(p["sku"],f"Error / discontinued",ikeaResponse.status_code)
+            writer.writerow([p["sku"],f"Error / discontinued",ikeaResponse.status_code])
             continue
         if len(ikeaData["results"])==0:
-            writer.writerow(p["sku"],f"notFound / discontinued",ikeaResponse.status_code)
+            writer.writerow([p["sku"],f"notFound / discontinued",ikeaResponse.status_code])
             continue
         IKEA_NUMERIC = ikeaData["results"][0]["items"][0]["product"]["salesPrice"]["numeral"]
         targetPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
@@ -93,7 +93,7 @@ def get_products_sku():
                                         headers=updateHeader
                                         ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
                                         ,data=json.dumps(data))
-                    writer.writerow(p["sku"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code)
+                    writer.writerow([p["sku"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code])
                     break
             i+=1
     for page in range(2,int(response.headers["X-WP-Total"]),10):
@@ -103,15 +103,15 @@ def get_products_sku():
             data = f'{{"searchParameters":{{"input":{p["sku"]},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
             pageResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=data)
             if pageResponse.status_code!=200:
-                writer.writerow(p["sku"],f"Error / discontinued",ikeaResponse.status_code)
+                writer.writerow([p["sku"],f"Error / discontinued",ikeaResponse.status_code])
                 continue
             ikeaData:Welcome9  = pageResponse.json()
             if(len(ikeaData["results"])==0):
-                writer.writerow(p["sku"],f"Error / discontinued",ikeaResponse.status_code)
+                writer.writerow([p["sku"],f"Error / discontinued",ikeaResponse.status_code])
                 continue
             isSellable = ikeaData["results"][0]["items"][0]["product"]["onlineSellable"]
             if  not isSellable:
-                writer.writerow(p["sku"],f"OutOfStock",ikeaResponse.status_code)
+                writer.writerow([p["sku"],f"OutOfStock",ikeaResponse.status_code])
                 continue
 
             if len(ikeaData["results"])>0:
@@ -135,7 +135,7 @@ def get_products_sku():
                                                 headers=updateHeader
                                                 ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
                                                 ,data=json.dumps(data))
-                            writer.writerow(p["sku"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code)
+                            writer.writerow([p["sku"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code])
                             break
                     i+=1
     with ftplib.FTP('ftp.chitoobox.com') as ftp:
