@@ -1,30 +1,26 @@
-on:
-  push:
-    branches:
-      - 'main'
-      
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-steps:
-      -
-        name: Checkout 
-        uses: actions/checkout@v2
-      -
-        name: Login to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      -
-        name: Build and push
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/simplewhale:latest
+name: 'RegEx check'
+description: 'Scans files for regex pattern'
+inputs:
+  python_version:
+    description: |
+      Python Version
+      Default is '3.10'.
+    default: '3.10'
+runs:
+  using: "composite"
+  steps:
+  - uses: actions/checkout@v4
+  - uses: actions/setup-python@v5
+  env: 
+    WOOCOMERCE_KEY: ${{ secrests.WOOCOMERCE_KEY }}
+    WOOCOMERCE_SECRET: ${{ secrests.WOOCOMERCE_SECRET }}
+    WOOCOMERCE_HOST: ${{ secrests.WOOCOMERCE_HOST }}
+    USER: ${{ secrests.USER }}
+    PASS: ${{ secrests.PASS }}
+    FTP_PASS: ${{ secrests.FTP_PASS }}
+    FTP_USER: ${{ secrests.FTP_USER }}
+  with:
+    python-version: '3.13' 
+    cache: 'pip'
+  - run: pip install -r requirements.txt
+  - run : python app.py
