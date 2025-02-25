@@ -97,9 +97,17 @@ def get_products_sku():
                     break
             i+=1
     for page in range(2,int(response.headers["X-WP-Total"]),10):
-        pageResponse = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",params={"page":page},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
-        time.sleep(5)
-        for p in pageResponse.json():
+        pageData=None
+        for  i in range(5):
+            try:
+                pageResponse = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",params={"page":page},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
+                time.sleep(5)
+                pageData = pageResponse.json()
+                break
+            except requests.RequestsJSONDecodeError:
+                print(pageResponse.status_code)
+        
+        for p in pageData:
             data = f'{{"searchParameters":{{"input":{p["sku"]},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
             pageResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=data)
             if pageResponse.status_code!=200:
