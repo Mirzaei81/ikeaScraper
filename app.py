@@ -142,13 +142,11 @@ def get_products_sku():
         try:
             ftp.login(os.getenv('FTP_USER'), os.getenv('FTP_PASS'))
             filename = 'out.csv'
-            string_to_write = output.getvalue()
-            with open(filename, 'w') as fp:
-                fp.write(string_to_write)
-            with open(filename, 'r') as fp:
-                res = ftp.storlines("STOR " + filename, fp)
-                if not res.startswith('226 Transfer complete'):
-                    print('Upload failed')
+            res = ftp.storlines("STOR " + filename, output.getvalue().encode("utf-8"))
+            if not res.startswith('226 Transfer complete'):
+                print('Upload failed')
+            else:
+                print("write file succesfuly")
         except ftplib.all_errors as e:
             print('FTP error:', e)
 if __name__ == '__main__':
