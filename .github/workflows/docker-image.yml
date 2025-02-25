@@ -10,6 +10,7 @@ env:
   FTP_PASS: ${{ secrets.FTP_PASS }}
   FTP_USER: ${{ secrets.FTP_USER }}
 jobs:
+  runs-on: ubuntu-latest
   main:
     name: main
     steps:
