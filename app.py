@@ -155,7 +155,7 @@ def get_products_sku():
             with open('tmp.csv',"rb") as fd:
                 res = ftp.storbinary("STOR " + filename, fd)
                 if not res.startswith('226 Transfer complete'):
-                    print('Upload failed')
+                    print(f'Upload failed {res}')
                 else:
                     print("write file succesfuly")
         except ftplib.all_errors as e:
