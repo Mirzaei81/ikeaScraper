@@ -153,7 +153,7 @@ def get_products_sku():
             with open('tmp.csv', 'w') as fd:
                 fd.write(output.getvalue())
             with open('tmp.csv',"r") as fd:
-                res = ftp.storlines("STOR " + filename, fd)
+                res = ftp.storbinary("STOR " + filename, fd)
                 if not res.startswith('226 Transfer complete'):
                     print('Upload failed')
                 else:
