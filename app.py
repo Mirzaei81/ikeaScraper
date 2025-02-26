@@ -150,9 +150,9 @@ def get_products_sku():
         try:
             ftp.login(os.getenv('FTP_USER'), os.getenv('FTP_PASS'))
             filename = 'out.csv'
-            with open('tmp.csv', 'r+') as fd:
+            with open('tmp.csv', 'w') as fd:
                 fd.write(output.getvalue())
-                fd.seek(0)
+            with open('tmp.csv',"r") as fd:
                 res = ftp.storlines("STOR " + filename, fd)
                 if not res.startswith('226 Transfer complete'):
                     print('Upload failed')
