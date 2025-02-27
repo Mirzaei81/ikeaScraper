@@ -15,7 +15,7 @@ import csv
 import io 
 output = io.StringIO()
 writer = csv.writer(output,quoting=csv.QUOTE_NONNUMERIC)
-writer.writerow(["sku","status","description"])
+writer.writerow(["sku","name","status","description"])
 load_dotenv()
 
 
@@ -62,17 +62,17 @@ def get_products_sku():
         ikeaResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=data)
         ikeaData:Welcome9  = ikeaResponse.json()
         if(len(ikeaData["results"])==0):
-            writer.writerow(p["sku"],f"NotFound / discontinued",ikeaResponse.status_code)
+            writer.writerow([p["sku"],p["name"],f"NotFound / discontinued",ikeaResponse.status_code])
             continue
         isSellable = ikeaData["results"][0]["items"][0]["product"]["onlineSellable"]
         if  not isSellable:
-            writer.writerow(p["sku"],f"Out of Stock : {isSellable}",ikeaResponse.status_code)
+            writer.writerow([p["sku"],p["name"],f"Out of Stock : {isSellable}",ikeaResponse.status_code])
             continue
         if ikeaResponse.status_code!=200:
-            writer.writerow(p["sku"],f"Error / discontinued",ikeaResponse.status_code)
+            writer.writerow([p["sku"],p["name"],f"Error / discontinued",ikeaResponse.status_code])
             continue
         if len(ikeaData["results"])==0:
-            writer.writerow(p["sku"],f"notFound / discontinued",ikeaResponse.status_code)
+            writer.writerow([p["sku"],p["name"],f"notFound / discontinued",ikeaResponse.status_code])
             continue
         IKEA_NUMERIC = ikeaData["results"][0]["items"][0]["product"]["salesPrice"]["numeral"]
         targetPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
@@ -93,25 +93,36 @@ def get_products_sku():
                                         headers=updateHeader
                                         ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
                                         ,data=json.dumps(data))
-                    writer.writerow(p["sku"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code)
+                    writer.writerow([p["sku"],p["name"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code])
+                    break
+                else: 
+                    writer.writerow([p["sku"],p["name"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code])
                     break
             i+=1
     for page in range(2,int(response.headers["X-WP-Total"]),10):
-        pageResponse = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",params={"page":page},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
-        time.sleep(5)
-        for p in pageResponse.json():
+        pageData=None
+        for  i in range(5):
+            try:
+                pageResponse = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",params={"page":page},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
+                time.sleep(5)
+                pageData = pageResponse.json()
+                break
+            except requests.RequestsJSONDecodeError:
+                print(pageResponse.status_code)
+        
+        for p in pageData:
             data = f'{{"searchParameters":{{"input":{p["sku"]},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
             pageResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=data)
             if pageResponse.status_code!=200:
-                writer.writerow(p["sku"],f"Error / discontinued",ikeaResponse.status_code)
+                writer.writerow([p["sku"],p["name"],f"Error / discontinued",ikeaResponse.status_code])
                 continue
             ikeaData:Welcome9  = pageResponse.json()
             if(len(ikeaData["results"])==0):
-                writer.writerow(p["sku"],f"Error / discontinued",ikeaResponse.status_code)
+                writer.writerow([p["sku"],p["name"],f"Error / discontinued",ikeaResponse.status_code])
                 continue
             isSellable = ikeaData["results"][0]["items"][0]["product"]["onlineSellable"]
             if  not isSellable:
-                writer.writerow(p["sku"],f"OutOfStock",ikeaResponse.status_code)
+                writer.writerow([p["sku"],p["name"],f"OutOfStock",ikeaResponse.status_code])
                 continue
 
             if len(ikeaData["results"])>0:
@@ -135,20 +146,21 @@ def get_products_sku():
                                                 headers=updateHeader
                                                 ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
                                                 ,data=json.dumps(data))
-                            writer.writerow(p["sku"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code)
+                            writer.writerow([p["sku"],p["name"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code])
                             break
                     i+=1
     with ftplib.FTP('ftp.chitoobox.com') as ftp:
         try:
             ftp.login(os.getenv('FTP_USER'), os.getenv('FTP_PASS'))
             filename = 'out.csv'
-            string_to_write = output.getvalue()
-            with open(filename, 'w') as fp:
-                fp.write(string_to_write)
-            with open(filename, 'r') as fp:
-                res = ftp.storlines("STOR " + filename, fp)
-                if not res.startswith('226 Transfer complete'):
-                    print('Upload failed')
+            with open('tmp.csv', 'w') as fd:
+                fd.write(output.getvalue())
+            with open('tmp.csv',"rb") as fd:
+                res = ftp.storbinary("STOR " + filename, fd)
+                if not res.startswith('226-File successfully transferred'):
+                    print(f'Upload failed {res}')
+                else:
+                    print("write file succesfuly")
         except ftplib.all_errors as e:
             print('FTP error:', e)
 if __name__ == '__main__':
