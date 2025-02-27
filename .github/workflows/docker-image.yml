@@ -1,5 +1,9 @@
 name: 'RegEx check'
-on: [push]
+on: 
+  push:
+  workflow_dispatch:
+  schedule:
+    - cron: '00 8 * * 1'
 env: 
   WOOCOMERCE_KEY: ${{ secrets.WOOCOMERCE_KEY }}
   WOOCOMERCE_SECRET: ${{ secrets.WOOCOMERCE_SECRET }}
