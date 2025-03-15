@@ -24,13 +24,16 @@ def get_products_sku_by_id(sku):
     response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products/",params={"sku":sku},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
     for p in response.json():
         data = f'{{"searchParameters":{{"input":{p["sku"]},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
-        ikeaResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=data)
-        if(ikeaResponse.status_code!=200):
-            print(ikeaResponse.status_code)
+        ikeaAEResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=data)
+        ikeaARResponse = requests.post('https://sik.search.blue.cdtapps.com/ar/en/search',params={"c":"sr","v":20241114},data=data)
+        print(ikeaARResponse)
+        break
+        if(ikeaAEResponse.status_code!=200):
+            print(ikeaAEResponse.status_code)
             with open(f"error/{p["sku"]}.text","w") as f:
-                f.write(ikeaResponse.text)
+                f.write(ikeaAEResponse.text)
                 break
-        ikeaData = ikeaResponse.json()
+        ikeaData = ikeaAEResponse.json()
         IKEA_NUMERIC = ikeaData["results"][0]["items"][0]["product"]["salesPrice"]["numeral"]
         targetPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
         i = 0
@@ -60,6 +63,9 @@ def get_products_sku():
     for p in response.json():
         data = f'{{"searchParameters":{{"input":{p["sku"]},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
         ikeaResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=data)
+        ikeaARResponse = requests.post('https://sik.search.blue.cdtapps.com/ar/en/search',params={"c":"sr","v":20241114},data=data)
+        print(ikeaARResponse.json,ikeaARResponse.status_code)
+        break
         ikeaData:Welcome9  = ikeaResponse.json()
         if(len(ikeaData["results"])==0):
             writer.writerow([p["sku"],p["name"],f"NotFound / discontinued",ikeaResponse.status_code])
@@ -149,13 +155,14 @@ def get_products_sku():
                             writer.writerow([p["sku"],p["name"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code])
                             break
                     i+=1
+        
     with ftplib.FTP('ftp.chitoobox.com') as ftp:
         try:
             ftp.login(os.getenv('FTP_USER'), os.getenv('FTP_PASS'))
             filename = 'out.csv'
-            with open('tmp.csv', 'w') as fd:
+            with open('tmp.csv', 'w',encoding="utf-8") as fd:
                 fd.write(output.getvalue())
-            with open('tmp.csv',"rb") as fd:
+            with open('tmp.csv',"rb",encoding="utf-8") as fd:
                 res = ftp.storbinary("STOR " + filename, fd)
                 if not res.startswith('226-File successfully transferred'):
                     print(f'Upload failed {res}')
