@@ -3,7 +3,7 @@ on:
   push:
   workflow_dispatch:
   schedule:
-    - cron: '30 5 * * 1'
+    - cron: '30 5 * * 1/2'
 env: 
   WOOCOMERCE_KEY: ${{ secrets.WOOCOMERCE_KEY }}
   WOOCOMERCE_SECRET: ${{ secrets.WOOCOMERCE_SECRET }}
