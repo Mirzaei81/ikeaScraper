@@ -163,7 +163,7 @@ def get_products_sku():
             filename = 'out.csv'
             with open('tmp.csv', 'w',encoding="utf-8") as fd:
                 fd.write(output.getvalue())
-            with open('tmp.csv',"rb",encoding="utf-8") as fd:
+            with open('tmp.csv',"rb") as fd:
                 res = ftp.storbinary("STOR " + filename, fd)
                 if not res.startswith('226-File successfully transferred'):
                     print(f'Upload failed {res}')
