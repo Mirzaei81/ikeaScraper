@@ -56,6 +56,13 @@ def get_products_sku_by_id(sku):
                     print(f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}")
                     break
             i+=1
+putHeaders = {
+    'Content-Type': 'application/json',
+}
+
+put_json_data = {
+    'status': 'pending',
+}
 import time
 def get_products_sku():
     response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
@@ -64,21 +71,37 @@ def get_products_sku():
     for p in response.json():
         data = f'{{"searchParameters":{{"input":{p["sku"]},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
         ikeaResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=data)
-        ikeaARResponse = requests.post('https://sik.search.blue.cdtapps.com/ar/en/search',params={"c":"sr","v":20241114},data=data)
-        print(ikeaARResponse.json,ikeaARResponse.status_code)
-        break
         ikeaData:Welcome9  = ikeaResponse.json()
         if(len(ikeaData["results"])==0):
             writer.writerow([p["sku"],p["name"],f"NotFound / discontinued",ikeaResponse.status_code])
+            requests.put(
+                f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
+                headers=putHeaders,
+                json=put_json_data,
+                auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
+            )
+
             continue
         isSellable = ikeaData["results"][0]["items"][0]["product"]["onlineSellable"]
         if  not isSellable:
+            requests.put(
+                f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
+                headers=putHeaders,
+                json=put_json_data,
+                auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
+            )
             writer.writerow([p["sku"],p["name"],f"Out of Stock : {isSellable}",ikeaResponse.status_code])
             continue
         if ikeaResponse.status_code!=200:
             writer.writerow([p["sku"],p["name"],f"Error / discontinued",ikeaResponse.status_code])
             continue
         if len(ikeaData["results"])==0:
+            requests.put(
+                f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
+                headers=putHeaders,
+                json=put_json_data,
+                auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
+            )
             writer.writerow([p["sku"],p["name"],f"notFound / discontinued",ikeaResponse.status_code])
             continue
         IKEA_NUMERIC = ikeaData["results"][0]["items"][0]["product"]["salesPrice"]["numeral"]
@@ -125,10 +148,22 @@ def get_products_sku():
                 continue
             ikeaData:Welcome9  = pageResponse.json()
             if(len(ikeaData["results"])==0):
+                requests.put(
+                    f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
+                    headers=putHeaders,
+                    json=put_json_data,
+                    auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
+                )
                 writer.writerow([p["sku"],p["name"],f"Error / discontinued",ikeaResponse.status_code])
                 continue
             isSellable = ikeaData["results"][0]["items"][0]["product"]["onlineSellable"]
             if  not isSellable:
+                requests.put(
+                    f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
+                    headers=putHeaders,
+                    json=put_json_data,
+                    auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
+                )
                 writer.writerow([p["sku"],p["name"],f"OutOfStock",ikeaResponse.status_code])
                 continue
 
@@ -156,6 +191,13 @@ def get_products_sku():
                             writer.writerow([p["sku"],p["name"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code])
                             break
                     i+=1
+            else:
+                requests.put(
+                    f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
+                    headers=putHeaders,
+                    json=put_json_data,
+                    auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
+                )
         
     with ftplib.FTP('ftp.chitoobox.com') as ftp:
         try:
