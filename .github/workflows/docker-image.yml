@@ -1,6 +1,6 @@
 name: 'RegEx check'
 on: 
-  push:
+  push: latest_branch
   workflow_dispatch:
   schedule:
     - cron: '30 5 * * 1/2'
