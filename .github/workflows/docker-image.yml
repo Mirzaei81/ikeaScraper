@@ -1,30 +1,27 @@
-on:
+name: 'RegEx check'
+on: 
   push:
-    branches:
-      - 'main'
-      
+  workflow_dispatch:
+  schedule:
+    - cron: '30 5 * * 1/2'
+env: 
+  WOOCOMERCE_KEY: ${{ secrets.WOOCOMERCE_KEY }}
+  WOOCOMERCE_SECRET: ${{ secrets.WOOCOMERCE_SECRET }}
+  WOOCOMERCE_HOST: ${{ secrets.WOOCOMERCE_HOST }}
+  USER: ${{ secrets.USER }}
+  PASS: ${{ secrets.PASS }}
+  FTP_PASS: ${{ secrets.FTP_PASS }}
+  FTP_USER: ${{ secrets.FTP_USER }}
 jobs:
-  build:
+  main:
     runs-on: ubuntu-latest
+    name: main
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.13' 
+        cache: 'pip'
+    - run: pip install -r requirements.txt
+    - run : python app.py
 
-steps:
-      -
-        name: Checkout 
-        uses: actions/checkout@v2
-      -
-        name: Login to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      -
-        name: Build and push
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/simplewhale:latest
