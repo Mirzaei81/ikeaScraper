@@ -199,7 +199,7 @@ def get_products_sku():
                     auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
                 )
         
-    with ftplib.FTP('ftp.zardaan.com.com') as ftp:
+    with ftplib.FTP('ftp.zardaan.com') as ftp:
         try:
             ftp.login(os.getenv('FTP_USER'), os.getenv('FTP_PASS'))
             filename = 'out.csv'
