@@ -61,8 +61,10 @@ putHeaders = {
 }
 
 put_json_data = {
-    'status': 'pending',
+    "backorders": "no",
+    "backorders_allowed": False,
 }
+
 import time
 def get_products_sku():
     response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
@@ -74,12 +76,13 @@ def get_products_sku():
         ikeaData:Welcome9  = ikeaResponse.json()
         if(len(ikeaData["results"])==0):
             writer.writerow([p["sku"],p["name"],f"NotFound / discontinued",ikeaResponse.status_code])
-            requests.put(
+            print(requests.put(
                 f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
                 headers=putHeaders,
                 json=put_json_data,
                 auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
-            )
+            ).status)
+            print(f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}')
 
             continue
         isSellable = ikeaData["results"][0]["items"][0]["product"]["onlineSellable"]
