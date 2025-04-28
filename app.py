@@ -76,13 +76,12 @@ def get_products_sku():
         ikeaData:Welcome9  = ikeaResponse.json()
         if(len(ikeaData["results"])==0):
             writer.writerow([p["sku"],p["name"],f"NotFound / discontinued",ikeaResponse.status_code])
-            print(requests.put(
+            requests.put(
                 f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
                 headers=putHeaders,
                 json=put_json_data,
                 auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
-            ).status)
-            print(f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}')
+            )
 
             continue
         isSellable = ikeaData["results"][0]["items"][0]["product"]["onlineSellable"]
