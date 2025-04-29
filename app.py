@@ -14,6 +14,11 @@ import ftplib
 import csv 
 import io 
 output = io.StringIO()
+import binascii
+# csv BOM
+hex_str = 'EFBBBF'
+bin_str = binascii.unhexlify(hex_str)
+output.write(bin_str)
 writer = csv.writer(output,quoting=csv.QUOTE_NONNUMERIC)
 writer.writerow(["sku","name","status","description"])
 load_dotenv()
