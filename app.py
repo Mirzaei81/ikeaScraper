@@ -14,11 +14,6 @@ import ftplib
 import csv 
 import io 
 output = io.StringIO()
-import binascii
-# csv BOM
-hex_str = 'EFBBBF'
-bin_str = binascii.unhexlify(hex_str)
-output.write(bin_str)
 writer = csv.writer(output,quoting=csv.QUOTE_NONNUMERIC)
 writer.writerow(["sku","name","status","description"])
 load_dotenv()
@@ -211,6 +206,8 @@ def get_products_sku():
             ftp.login(os.getenv('FTP_USER'), os.getenv('FTP_PASS'))
             filename = 'out.csv'
             with open('tmp.csv', 'w',encoding="utf-8") as fd:
+                import codecs
+                fd.write(codecs.BOM_UTF8)
                 fd.write(output.getvalue())
             with open('tmp.csv',"rb") as fd:
                 res = ftp.storbinary("STOR " + filename, fd)
