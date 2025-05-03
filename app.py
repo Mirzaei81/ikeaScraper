@@ -25,37 +25,61 @@ def get_products_sku_by_id(sku):
     for p in response.json():
         data = f'{{"searchParameters":{{"input":{p["sku"]},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
         ikeaAEResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=data)
-        ikeaARResponse = requests.post('https://sik.search.blue.cdtapps.com/ar/en/search',params={"c":"sr","v":20241114},data=data)
-        print(ikeaARResponse)
-        break
         if(ikeaAEResponse.status_code!=200):
-            print(ikeaAEResponse.status_code)
+            resp = requests.put(
+                f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
+                headers=putHeaders,
+                json=put_json_data,
+                auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
+            )
+            print(resp.status_code)
             with open(f"error/{p["sku"]}.text","w") as f:
                 f.write(ikeaAEResponse.text)
                 break
+
         ikeaData = ikeaAEResponse.json()
-        IKEA_NUMERIC = ikeaData["results"][0]["items"][0]["product"]["salesPrice"]["numeral"]
-        targetPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
-        i = 0
-        meta_datas = p["meta_data"]
-        for i in range(len(p["meta_data"])):
-            if p["meta_data"][i]["key"]=="_mnswmc_regular_price":
-                currentPrice = meta_datas[i]["value"]
-                if int(targetPrice)>int(currentPrice):
-                    meta_datas[i]["value"] = targetPrice
-                    updateHeader = {
-                        "Content-Type": "application/json"
-                    }
-                    data={
-                        "meta_data" : meta_datas
-                    }
-                    resP = requests.put(f"https://{os.getenv("WOOCOMERCE_HOST")}/wp-json/wc/v3/products/{p["id"]}",
-                                        headers=updateHeader
-                                        ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
-                                        ,data=json.dumps(data))
-                    print(f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}")
-                    break
-            i+=1
+        try:
+            if(len(ikeaData["results"])==0):
+                resp = requests.put(
+                    f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
+                    headers=putHeaders,
+                    json=put_json_data,
+                    auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
+                )
+                print(resp.status_code)
+                break
+
+            IKEA_NUMERIC = ikeaData["results"][0]["items"][0]["product"]["salesPrice"]["numeral"]
+            isSellable = ikeaData["results"][0]["items"][0]["product"]["onlineSellable"]
+            if not isSellable:
+                requests.get(f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
+                    headers=putHeaders,
+                    json=put_json_data,
+                    auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
+                )
+                print(resp.status_code)
+            targetPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
+            
+            meta_datas = p["meta_data"]
+            for i in range(len(p["meta_data"])):
+                if p["meta_data"][i]["key"]=="_mnswmc_regular_price":
+                    currentPrice = meta_datas[i]["value"]
+                    print(int(targetPrice),int(currentPrice))
+                    if int(targetPrice)>int(currentPrice):
+                        meta_datas[i]["value"] = targetPrice
+                        updateHeader = {
+                            "Content-Type": "application/json"
+                        }
+                        data={
+                            "meta_data" : meta_datas
+                        }
+                        requests.put(f"https://{os.getenv("WOOCOMERCE_HOST")}/wp-json/wc/v3/products/{p["id"]}",
+                                            headers=updateHeader
+                                            ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
+                                            ,data=json.dumps(data))
+                        break
+        except _:
+            print(ikeaData)
 putHeaders = {
     'Content-Type': 'application/json',
 }
@@ -67,9 +91,8 @@ put_json_data = {
 
 import time
 def get_products_sku():
-    response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
-    print(response.status_code)
-    time.sleep(5)
+    response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",params={"page":1,"per_page":100},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
+    time.sleep(1)
     for p in response.json():
         data = f'{{"searchParameters":{{"input":{p["sku"]},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
         ikeaResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=data)
@@ -131,13 +154,14 @@ def get_products_sku():
                     writer.writerow([p["sku"],p["name"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code])
                     break
             i+=1
-    for page in range(2,int(response.headers["X-WP-Total"]),10):
+    for page in range(2,int(response.headers["X-WP-Total"])):
         pageData=None
         for  i in range(5):
             try:
-                pageResponse = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",params={"page":page},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
-                time.sleep(5)
+                pageResponse = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",params={"page":page,"per_page":100},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
                 pageData = pageResponse.json()
+
+                time.sleep(1)
                 break
             except requests.RequestsJSONDecodeError:
                 print(pageResponse.status_code)
@@ -219,4 +243,4 @@ def get_products_sku():
             print('FTP error:', e)
 if __name__ == '__main__':
     get_products_sku()
-    # get_products_sku_by_id(20410888)
+    # get_products_sku_by_id("00508536")
