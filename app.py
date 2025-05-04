@@ -22,7 +22,6 @@ load_dotenv()
 
 def get_products_sku_by_id(sku):
     response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products/",params={"sku":sku},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
-    print(response.text)
     for p in response.json():
         data = f'{{"searchParameters":{{"input":{p["sku"]},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
         ikeaAEResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=data)
@@ -33,7 +32,7 @@ def get_products_sku_by_id(sku):
                 json=put_json_data,
                 auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
             )
-            print(resp.status_code)
+            print("bad response",resp.status_code)
             with open(f"error/{p["sku"]}.text","w") as f:
                 f.write(ikeaAEResponse.text)
                 break
@@ -47,7 +46,7 @@ def get_products_sku_by_id(sku):
                     json=put_json_data,
                     auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
                 )
-                print(resp.status_code)
+                print("item not found",resp.status_code)
                 break
 
             IKEA_NUMERIC = ikeaData["results"][0]["items"][0]["product"]["salesPrice"]["numeral"]
@@ -58,7 +57,7 @@ def get_products_sku_by_id(sku):
                     json=put_json_data,
                     auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
                 )
-                print(resp.status_code)
+                print("is not selleble",resp.status_code)
             targetPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
             
             meta_datas = p["meta_data"]
@@ -231,7 +230,7 @@ def get_products_sku():
         try:
             ftp.login(os.getenv('FTP_USER'), os.getenv('FTP_PASS'))
             filename = 'out.csv'
-            with open('tmp.csv', 'wb',encoding="utf-8") as fd:
+            with open('tmp.csv', 'wb') as fd:
                 import codecs
                 fd.write(codecs.BOM_UTF8)
                 fd.write(output.getvalue().encode('utf-8'))
@@ -245,4 +244,4 @@ def get_products_sku():
             print('FTP error:', e)
 if __name__ == '__main__':
     get_products_sku()
-    #get_products_sku_by_id("8048210") #۸۰۴۷۸۲۱۰
+    # get_products_sku_by_id("70478140") #۷۰۴۷۸۱۴۰
