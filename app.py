@@ -13,18 +13,22 @@ import json
 import ftplib
 import csv 
 import io 
+import sys
 output = io.StringIO()
 writer = csv.writer(output,quoting=csv.QUOTE_NONNUMERIC)
-writer.writerow(["sku","stock","name","status","description"])
+writer.writerow(["sku","stock","name","status","description","tag"])
 load_dotenv()
 
-
+proxy ={
+    "http":"http://127.0.0.1:10809",
+    "https":"http://127.0.0.1:10809"
+}
 
 def get_products_sku_by_id(sku):
-    response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products/",params={"sku":sku},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
+    response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products/",proxies=proxy,params={"sku":sku},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
     for p in response.json():
         data = f'{{"searchParameters":{{"input":{p["sku"]},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
-        ikeaAEResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=data)
+        ikeaAEResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',proxies=proxy,params={"c":"sr","v":20241114},data=data)
         if(ikeaAEResponse.status_code!=200):
             resp = requests.put(
                 f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
@@ -37,7 +41,15 @@ def get_products_sku_by_id(sku):
                 f.write(ikeaAEResponse.text)
                 break
 
-        ikeaData = ikeaAEResponse.json()
+        try:
+            ikeaData = ikeaAEResponse.json()
+        except requests.exceptions.JSONDecodeError:
+            print("decode error")
+            sys.exit(-1)
+
+        with open("out.json","w") as f:
+            f.write(json.dumps(ikeaData))
+        
         try:
             if(len(ikeaData["results"])==0):
                 resp = requests.put(
@@ -49,6 +61,7 @@ def get_products_sku_by_id(sku):
                 print("item not found",resp.status_code)
                 break
 
+            tag = ikeaData["results"][0]["items"][0]["tag"]
             IKEA_NUMERIC = ikeaData["results"][0]["items"][0]["product"]["salesPrice"]["numeral"]
             isSellable = ikeaData["results"][0]["items"][0]["product"]["onlineSellable"]
             if not isSellable:
@@ -58,6 +71,8 @@ def get_products_sku_by_id(sku):
                     auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
                 )
                 print("is not selleble",resp.status_code)
+
+            tag = ikeaData["results"][0]["items"][0]["tag"] 
             targetPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
             
             meta_datas = p["meta_data"]
@@ -99,7 +114,7 @@ def get_products_sku():
         ikeaData:Welcome9  = ikeaResponse.json()
         if("results"  not in ikeaData or len(ikeaData["results"])==0):
 
-            writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"NotFound / discontinued",ikeaResponse.status_code])
+            writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"NotFound / discontinued",ikeaResponse.status_code,""])
             requests.put(
                 f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
                 headers=putHeaders,
@@ -108,6 +123,8 @@ def get_products_sku():
             )
 
             continue
+        tag = ikeaData["results"][0]["items"][0]["tag"]
+        IKEA_NUMERIC = ikeaData["results"][0]["items"][0]["product"]["salesPrice"]["numeral"]
         isSellable = ikeaData["results"][0]["items"][0]["product"]["onlineSellable"]
         if  not isSellable:
             requests.put(
@@ -116,10 +133,10 @@ def get_products_sku():
                 json=put_json_data,
                 auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
             )
-            writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Out of Stock : {isSellable}",ikeaResponse.status_code])
+            writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Out of Stock : {isSellable}",ikeaResponse.status_code,tag])
             continue
         if ikeaResponse.status_code!=200:
-            writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Error / discontinued",ikeaResponse.status_code])
+            writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Error / discontinued",ikeaResponse.status_code,tag])
             continue
         if len(ikeaData["results"])==0:
             requests.put(
@@ -128,7 +145,7 @@ def get_products_sku():
                 json=put_json_data,
                 auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
             )
-            writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"notFound / discontinued",ikeaResponse.status_code])
+            writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"notFound / discontinued",ikeaResponse.status_code,tag])
             continue
         IKEA_NUMERIC = ikeaData["results"][0]["items"][0]["product"]["salesPrice"]["numeral"]
         targetPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
@@ -149,10 +166,10 @@ def get_products_sku():
                                         headers=updateHeader
                                         ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
                                         ,data=json.dumps(data))
-                    writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code])
+                    writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code,tag])
                     break
                 else: 
-                    writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code])
+                    writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"won't Update product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code,tag])
                     break
             i+=1
     for page in range(2,int(response.headers["X-WP-Total"])):
@@ -170,9 +187,10 @@ def get_products_sku():
             data = f'{{"searchParameters":{{"input":{p["sku"]},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
             pageResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=data)
             if pageResponse.status_code!=200:
-                writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Error / discontinued",ikeaResponse.status_code])
+                writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Error / discontinued",ikeaResponse.status_code,tag])
                 continue
             ikeaData:Welcome9  = pageResponse.json()
+ 
             if("results"  not in ikeaData  or len(ikeaData["results"])==0):
                 requests.put(
                     f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
@@ -180,21 +198,23 @@ def get_products_sku():
                     json=put_json_data,
                     auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
                 )
-                writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Error / discontinued",ikeaResponse.status_code])
+                writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Error / discontinued",ikeaResponse.status_code,""])
                 continue
-            isSellable = ikeaData["results"][0]["items"][0]["product"]["onlineSellable"]
-            if  not isSellable:
-                requests.put(
-                    f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
-                    headers=putHeaders,
-                    json=put_json_data,
-                    auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
-                )
-                writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"OutOfStock",ikeaResponse.status_code])
-                continue
-
-            if len("results" in ikeaData and  ikeaData["results"])>0:
+            if  "results" in ikeaData and len(ikeaData["results"])>0:
                 # IKEA_CODE = ikeaData["results"][0]["items"][0]["product"]["salesPrice"]["currencyCode"]
+                tag = ikeaData["results"][0]["items"][0]["tag"]
+                isSellable = ikeaData["results"][0]["items"][0]["product"]["onlineSellable"]
+                if  not isSellable:
+                    requests.put(
+                        f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
+                        headers=putHeaders,
+                        json=put_json_data,
+                        auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
+                    )
+                    writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"OutOfStock",ikeaResponse.status_code,tag])
+                    continue
+
+                tag = ikeaData["results"][0]["items"][0]["tag"]
                 IKEA_NUMERIC = ikeaData["results"][0]["items"][0]["product"]["salesPrice"]["numeral"]
                 targetPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
                 i = 0
@@ -214,7 +234,7 @@ def get_products_sku():
                                                 headers=updateHeader
                                                 ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
                                                 ,data=json.dumps(data))
-                            writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code])
+                            writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Updated product {p['sku']}: {currentPrice} -> {targetPrice}",ikeaResponse.status_code,tag])
                             break
                     i+=1
             else:
@@ -224,7 +244,7 @@ def get_products_sku():
                     json=put_json_data,
                     auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
                 )
-                writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Error / discontinued",ikeaResponse.status_code])
+                writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Error / discontinued",ikeaResponse.status_code,tag])
         
     with ftplib.FTP('ftp.zardaan.com') as ftp:
         try:
@@ -244,4 +264,4 @@ def get_products_sku():
             print('FTP error:', e)
 if __name__ == '__main__':
     get_products_sku()
-    # get_products_sku_by_id("70478140") #۷۰۴۷۸۱۴۰
+    # get_products_sku_by_id("30238543") #۷۰۴۷۸۱۴۰
