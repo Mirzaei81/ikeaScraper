@@ -61,7 +61,8 @@ def get_products_sku_by_id(sku):
                 print("item not found",resp.status_code)
                 break
 
-            tag = ikeaData["results"][0]["items"][0]["tag"]
+            item = ikeaData["results"][0]["items"][0]
+            tag = item["tag"] if "tag" in item  else ""
             IKEA_NUMERIC = ikeaData["results"][0]["items"][0]["product"]["salesPrice"]["numeral"]
             isSellable = ikeaData["results"][0]["items"][0]["product"]["onlineSellable"]
             if not isSellable:
@@ -72,7 +73,6 @@ def get_products_sku_by_id(sku):
                 )
                 print("is not selleble",resp.status_code)
 
-            tag = ikeaData["results"][0]["items"][0]["tag"] 
             targetPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
             
             meta_datas = p["meta_data"]
@@ -123,7 +123,8 @@ def get_products_sku():
             )
 
             continue
-        tag = ikeaData["results"][0]["items"][0]["tag"]
+        item = ikeaData["results"][0]["items"][0]
+        tag = item["tag"] if "tag" in item  else ""
         IKEA_NUMERIC = ikeaData["results"][0]["items"][0]["product"]["salesPrice"]["numeral"]
         isSellable = ikeaData["results"][0]["items"][0]["product"]["onlineSellable"]
         if  not isSellable:
@@ -187,7 +188,7 @@ def get_products_sku():
             data = f'{{"searchParameters":{{"input":{p["sku"]},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
             pageResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=data)
             if pageResponse.status_code!=200:
-                writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Error / discontinued",ikeaResponse.status_code,tag])
+                writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Error / discontinued",ikeaResponse.status_code,""])
                 continue
             ikeaData:Welcome9  = pageResponse.json()
  
@@ -202,7 +203,8 @@ def get_products_sku():
                 continue
             if  "results" in ikeaData and len(ikeaData["results"])>0:
                 # IKEA_CODE = ikeaData["results"][0]["items"][0]["product"]["salesPrice"]["currencyCode"]
-                tag = ikeaData["results"][0]["items"][0]["tag"]
+                item = ikeaData["results"][0]["items"][0]
+                tag = item["tag"] if "tag" in item  else ""
                 isSellable = ikeaData["results"][0]["items"][0]["product"]["onlineSellable"]
                 if  not isSellable:
                     requests.put(
@@ -214,8 +216,6 @@ def get_products_sku():
                     writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"OutOfStock",ikeaResponse.status_code,tag])
                     continue
 
-                tag = ikeaData["results"][0]["items"][0]["tag"]
-                IKEA_NUMERIC = ikeaData["results"][0]["items"][0]["product"]["salesPrice"]["numeral"]
                 targetPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
                 i = 0
                 meta_datas = p["meta_data"]
