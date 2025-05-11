@@ -27,6 +27,7 @@ hesanfa_url = "https://api.hesabfa.com/v1/item/getByBarcode"
 
 def get_products_sku_by_id(sku):
     response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products/",proxies=proxy,params={"sku":sku},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
+
     for p in response.json():
         data = f'{{"searchParameters":{{"input":{p["sku"]},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
         ikeaAEResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',proxies=proxy,params={"c":"sr","v":20241114},data=data)
@@ -42,6 +43,20 @@ def get_products_sku_by_id(sku):
                 f.write(ikeaAEResponse.text)
                 break
 
+
+        payload = json.dumps({
+            "apiKey": "hPYhvvcfeP1q4EAd1fucG9bCIJuAXUrW",
+            "loginToken": "6deb2b60112cd8cb927cbe6ccea860bbca6726964f642559972551d87f13afaed96e596d1a18fb49ed5fdbda5fa6335b",
+            "barcode": p["sku"]
+        })
+        headers = {
+        'Content-Type': 'application/json'
+        }
+
+        hesabfaRes = requests.post(hesanfa_url,payload,headers=headers)
+        hesabfaKala =  hesabfaRes.json()
+        hesabId = hesabfaKala["Result"]["Id"]
+        print("HesabID ",hesabId)
         try:
             ikeaData = ikeaAEResponse.json()
         except requests.exceptions.JSONDecodeError:
@@ -108,7 +123,6 @@ put_json_data = {
 import time
 def get_products_sku():
     response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",params={"page":1,"per_page":100},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
-    time.sleep(1)
     for p in response.json():
         data = f'{{"searchParameters":{{"input":{p["sku"]},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
         ikeaResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=data)
@@ -122,9 +136,14 @@ def get_products_sku():
         'Content-Type': 'application/json'
         }
 
-        hesabfaRes = requests.post(hesanfa_url,payload,headers=headers)
-        hesabfaKala =  hesabfaRes.json()
-        hesabId = hesabfaKala["Result"]["Id"] 
+        time.sleep(0.5)
+        try:
+            hesabfaRes = requests.post(hesanfa_url,payload,headers=headers)
+            hesabfaKala =  hesabfaRes.json()
+            hesabId = hesabfaKala["Result"]["Id"] 
+        except Exception:
+            print(p["sku"])
+        hesabId =-1
         if("results"  not in ikeaData or len(ikeaData["results"])==0):
 
             writer.writerow([p["sku"],hesabId,p["stock_quantity"],p["name"],f"NotFound / discontinued",ikeaResponse.status_code,""])
@@ -209,9 +228,14 @@ def get_products_sku():
             'Content-Type': 'application/json'
             }
 
-            hesabfaRes = requests.post(hesanfa_url,payload,headers=headers)
-            hesabfaKala =  hesabfaRes.json()
-            hesabId = hesabfaKala["Result"]["Id"]
+            time.sleep(0.4)
+            try:
+                hesabfaRes = requests.post(hesanfa_url,payload,headers=headers)
+                hesabfaKala =  hesabfaRes.json()
+                hesabId = hesabfaKala["Result"]["Id"]
+            except Exception:
+                hesabId = -1
+
             if pageResponse.status_code!=200:
                 writer.writerow([p["sku"],p["stock_quantity"],p["name"],f"Error / discontinued",ikeaResponse.status_code,""])
                 continue
@@ -288,5 +312,5 @@ def get_products_sku():
         except ftplib.all_errors as e:
             print('FTP error:', e)
 if __name__ == '__main__':
-    get_products_sku()
-    # get_products_sku_by_id("30238543") #۷۰۴۷۸۱۴۰
+    # get_products_sku()
+    get_products_sku_by_id("30238543") #۷۰۴۷۸۱۴۰
