@@ -19,9 +19,29 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
+      name: price_crapper
       with:
         python-version: '3.13' 
         cache: 'pip'
     - run: pip install -r requirements.txt
     - run : python app.py
+  offer_scrapper:
+
+    runs-on: ubuntu-latest
+    name: offer_scrapper
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      name: offer_scrapper
+      with:
+        python-version: '3.13' 
+        cache: 'pip'
+    - run: pip install -r requirements.txt
+    - run : python app.py
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist-without-markdown
+        path: |
+          dist
 

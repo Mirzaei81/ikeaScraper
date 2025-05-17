@@ -63,7 +63,7 @@ function create_vip_order($id) {
       $contact = json_decode($contact_res,true);
       $first_name = $contact["Result"]["name"];
       $company = $contact["Result"]["company"];
-      $phone = $contact["Result"]["Phone"];
+      $phone = $contact["Result"]["Mobile"];
       $address_1 = $contact["Result"]["Address"];
       $address_2 = $contact["Result"]["Address"];
       $city = $contact["Result"]["City"];
@@ -96,13 +96,15 @@ function create_vip_order($id) {
       curl_close($curl);
       $factor = json_decode($response, true);
 
-      $productCodes = [];
 
+      $order = wc_create_order();
       // Check if InvoiceItems exist and iterate through them
       if (isset($factor['Result']['InvoiceItems']) && is_array($factor['Result']['InvoiceItems'])) {
          foreach ($factor['Result']['InvoiceItems'] as $item) {
             if (isset($item['Item']['ProductCode'])) {
-               $productCodes[] = $item['Item']['ProductCode'];
+               $productCode = (int)$item['Item']['ProductCode'];
+               $productQuant = (int)$item['Quantity'];
+               $order->add_product(wc_get_product($productCodes),$productQuant); // Use wc_get_product instead of deprecated get_product
             }
          }
       }
@@ -120,16 +122,16 @@ function create_vip_order($id) {
          'country'    => $country,
       );
 
+   
       // Now we create the order
-      $order = wc_create_order();
-      foreach ($productCodes as $p) {
-         $order->add_product(wc_get_product($p)); // Use wc_get_product instead of deprecated get_product
-      }
       $order->set_address($address, 'billing');
+      $order->set_address($address, 'shipping');
       $order->calculate_totals();
       $order->update_status("processing", 'Imported order', TRUE);
+      file_put_contents("new_created_order.log",print_r($order,true));
       add_action('woocommerce_init', 'create_vip_order');
    } catch (Throwable $th) {
       file_put_contents("hesabfa_error.log", print_r($th, true));
    };
 }
+
