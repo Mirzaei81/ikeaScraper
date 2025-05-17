@@ -42,7 +42,6 @@ def parseProd(i):
     data = {"searchParameters":{"input":"new_lower_price","type":"SPECIAL"},"store":"218","optimizely":{"ran-7101_-_red_vs_grey_crossed_over_icon_for_not_sold":None,"listing_3299_event_orch_null_test":None,"listing_3332_collapsed_filter_bar":None,"sik_null_test_20250514_default":"a"},"optimizelyAttributes":{"market":"ae","device":" ","deviceType":"desktop","deviceVendor":" ","isLoggedIn":False,"environment":"prod","browser":"Brave","os":"Windows","language":"en","feedMarket":"en-AE","locale":"en-AE","customerType":"guest","isEntranceVisit":False,"pip_to_pip_src":""},"isUserLoggedIn":False,"components":[{"component":"PRIMARY_AREA","columns":4,"types":{"main":"PRODUCT","breakouts":["PLANNER","LOGIN_REMINDER","MATTRESS_WARRANTY"]},"filterConfig":{"f-online-sellable":True,"subcategories-style":"tree-navigation","max-num-filters":4},"sort":"MOST_POPULAR","window":{"offset":24000*i+1,"size":24}}]}
     response = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search', params=params, headers=headers, data=json.dumps(data))
     ikeaProd = response.json()
-    print(response.status_code,response.text)
     MAX_PRODCOUNTS =  int(ikeaProd["results"][0]["metadata"]["max"])
     for item in ikeaProd["results"][0]["items"]:
         tag =  item['product']["tag"]
