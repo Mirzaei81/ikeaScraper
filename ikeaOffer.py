@@ -48,7 +48,7 @@ def parseProd(i):
         sku  = item['product']["id"]
         if sku in products:
             writer.writerow([products[sku],tag])
-
+            print("found Sku from zardanCache : {}".format(sku))
         else:
             url = "https://zardaan.com/wp-json/wc/v3/products?sku={}".format(sku)
             headers = {
@@ -56,6 +56,7 @@ def parseProd(i):
             'Content-Type': 'application/json',
             'Cookie': 'pxcelPage_c01002=1'
             }
+            print("getting Sku from zardan : {}".format(sku))
 
             response = requests.get(url, headers=headers) 
             zProd = response.json()
