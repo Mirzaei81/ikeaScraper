@@ -216,7 +216,7 @@ def get_products_sku():
 
                 time.sleep(1)
                 break
-            except requests.RequestsJSONDecodeError:
+            except Exception:
                 print(pageResponse.status_code)
 
         for p in pageData:
