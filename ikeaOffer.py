@@ -60,9 +60,12 @@ def parseProd(i):
 
             response = requests.get(url, headers=headers) 
             zProd = response.json()
-            writer.writerow([zProd[0]["name"],tag])
-            with open("zarrdanProuct","a") as f: 
-                f.write(f"{sku}={zProd["name"]}")
+            if(len(zProd)!=0):
+                writer.writerow([zProd[0]["name"],tag])
+                with open("zarrdanProuct","a") as f: 
+                    f.write(f"{sku}={zProd[0]["name"]}")
+            else:
+                writer.writerow([item["product"]["name"],tag])
 parseProd(0)
 for i in range(1,(MAX_PRODCOUNTS//24)+1):
     parseProd(i)
