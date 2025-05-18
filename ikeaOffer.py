@@ -197,7 +197,7 @@ def parseIkeaFamily(page):
             writer.writerow([item["product"]["name"],tag,sku,-1])
             
 
-for i in range(1,MA):
+for i in range(1,MAX_PRODCOUNTS):
     parseIkeaFamily(i)
 
 with ftplib.FTP('ftp.zardaan.com') as ftp:
