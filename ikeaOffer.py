@@ -64,7 +64,7 @@ def parseProd(i):
         response = requests.get(url, headers=headers) 
         zProd = response.json()
         if(len(zProd)!=0):
-            writer.writerow([item["product"]["name"],tag,sku,stock])
+            writer.writerow([zProd[0]["name"],tag,sku,zProd[0]["stock_quantity"]])
             with open("zarrdanProuct","a") as f: 
                 f.write(f"{sku}={zProd[0]["name"]},{zProd[0]["stock_quantity"]}")
         else:
