@@ -5,10 +5,11 @@ import requests
 import json
 
 import csv
+import gzip
 products = []
 output = io.StringIO()
 writer = csv.writer(output,quoting=csv.QUOTE_NONNUMERIC)
-writer.writerow(["name","tag"])
+writer.writerow(["name","tag","sku","stock"])
 with open("dist/zarddanProduct.txt","r")as f :
     for line in f:
         if "=" in line:
@@ -47,28 +48,158 @@ def parseProd(i):
         tag =  item['product']["tag"]
         sku  = item['product']["id"]
         if sku in products:
-            writer.writerow([products[sku],tag])
+            item = products[sku]
+            if "," in  item:
+                product,stock = products[s].split(",")
+                writer.writerow([product,tag,sku,stock])
             print("found Sku from zardanCache : {}".format(sku))
-        else:
-            url = "https://zardaan.com/wp-json/wc/v3/products?sku={}".format(sku)
-            headers = {
-            'Authorization': 'Basic Y2tfYTdjNGVlM2U5NTc1MDI4MWQ5MTg1MmRlOTJkMjc1NWNkMDUyZGUyMjpjc18yNWU4NDQ4YzZkMWE1YzdkYTlhMGFlMDE0Y2M4ZWQ2YzViMGU2MWE5',
-            'Content-Type': 'application/json',
-            'Cookie': 'pxcelPage_c01002=1'
-            }
-            print("getting Sku from zardan : {}".format(sku))
+        url = "https://zardaan.com/wp-json/wc/v3/products?sku={}".format(sku)
+        headers = {
+        'Authorization': 'Basic Y2tfYTdjNGVlM2U5NTc1MDI4MWQ5MTg1MmRlOTJkMjc1NWNkMDUyZGUyMjpjc18yNWU4NDQ4YzZkMWE1YzdkYTlhMGFlMDE0Y2M4ZWQ2YzViMGU2MWE5',
+        'Content-Type': 'application/json',
+        'Cookie': 'pxcelPage_c01002=1'
+        }
+        print("getting Sku from zardan : {}".format(sku))
 
-            response = requests.get(url, headers=headers) 
-            zProd = response.json()
-            if(len(zProd)!=0):
-                writer.writerow([zProd[0]["name"],tag])
-                with open("zarrdanProuct","a") as f: 
-                    f.write(f"{sku}={zProd[0]["name"]}")
-            else:
-                writer.writerow([item["product"]["name"],tag])
+        response = requests.get(url, headers=headers) 
+        zProd = response.json()
+        if(len(zProd)!=0):
+            writer.writerow([item["product"]["name"],tag,sku,stock])
+            with open("zarrdanProuct","a") as f: 
+                f.write(f"{sku}={zProd[0]["name"]},{zProd[0]["stock_quantity"]}")
+        else:
+            writer.writerow([item["product"]["name"],tag,sku,-1])
+            
 parseProd(0)
 for i in range(1,(MAX_PRODCOUNTS//24)+1):
     parseProd(i)
+
+
+headers = {
+    'accept': '*/*',
+    'accept-language': 'en-US,en;q=0.6',
+    'origin': 'https://www.ikea.com',
+    'priority': 'u=1, i',
+    'referer': 'https://www.ikea.com/',
+    'sec-ch-ua': '"Chromium";v="136", "Brave";v="136", "Not.A/Brand";v="99"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Windows"',
+    'sec-fetch-dest': 'empty',
+    'sec-fetch-mode': 'cors',
+    'sec-fetch-site': 'cross-site',
+    'sec-gpc': '1',
+    'session-id': '37b22e56-0c81-4897-88c0-a7297f554c31',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+}
+
+params = {
+    'group': 'IKEA Family offers',
+    'subcategories-style': 'tree-navigation',
+    'types': 'PRODUCT, CONTENT, ANSWER, CATEGORY, PLANNER, COMPARE',
+    'c': 'sr',
+    'v': '20241114',
+    'store': '218',
+    'columns': '4',
+    'max-num-filters': '5',
+}
+
+response = requests.get('https://sik.search.blue.cdtapps.com/ae/en/product-group-page', params=params, headers=headers)
+ikeaProds = response.json()
+MAX_PRODCOUNTS = 1
+prods = ikeaProds["productGroupPage"]["products"]["main"]["items"]
+MAX_PRODCOUNTS = (ikeaProds["productGroupPage"]["products"]["main"]["max"]//24)+1
+for item in prods:
+        tag =  item['product']["tag"]
+        sku  = item['product']["id"]
+        if sku in products:
+            item = products[sku]
+            if "," in  item:
+                products,stock = products[s].split(",")
+                writer.writerow([products[sku],tag,sku,stock])
+            print("found Sku from zardanCache : {}".format(sku))
+        url = "https://zardaan.com/wp-json/wc/v3/products?sku={}".format(sku)
+        headers = {
+        'Authorization': 'Basic Y2tfYTdjNGVlM2U5NTc1MDI4MWQ5MTg1MmRlOTJkMjc1NWNkMDUyZGUyMjpjc18yNWU4NDQ4YzZkMWE1YzdkYTlhMGFlMDE0Y2M4ZWQ2YzViMGU2MWE5',
+        'Content-Type': 'application/json',
+        'Cookie': 'pxcelPage_c01002=1'
+        }
+        print("getting Sku from zardan : {}".format(sku))
+
+        response = requests.get(url, headers=headers) 
+        zProd = response.json()
+        if(len(zProd)!=0):
+            writer.writerow([item["product"]["name"],tag,sku,stock])
+            with open("zarrdanProuct","a") as f: 
+                f.write(f"{sku}={zProd[0]["name"]},{zProd[0]["stock_quantity"]}")
+        else:
+            writer.writerow([item["product"]["name"],tag,sku,-1])
+import base64
+def parseIkeaFamily(page):
+    headers = {
+        'accept': '*/*',
+        'accept-language': 'en-US,en;q=0.6',
+        'origin': 'https://www.ikea.com',
+        'priority': 'u=1, i',
+        'referer': 'https://www.ikea.com/',
+        'sec-ch-ua': '"Chromium";v="136", "Brave";v="136", "Not.A/Brand";v="99"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'cross-site',
+        'sec-gpc': '1',
+        'session-id': '37b22e56-0c81-4897-88c0-a7297f554c31',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+    }
+
+    token = gzip.compress(json.dumps({"list":"PRODUCTS_MAIN","end":i*24}).encode("utf-8"))
+    token = base64.b64encode(token,b"-_")
+    print(token)
+    params = {
+        'group': 'IKEA Family offers',
+        'subcategories-style': 'tree-navigation',
+        'types': 'PRODUCT, CONTENT, ANSWER, CATEGORY, PLANNER, COMPARE',
+        'token': token,
+        'c': 'sr',
+        'v': '20241114',
+        'sort': 'RELEVANCE',
+        'store': '218',
+        'columns': '4',
+        'max-num-filters': '7',
+    }
+
+    response = requests.get('https://sik.search.blue.cdtapps.com/ae/en/product-group-page/more', params=params, headers=headers)
+    ikeaProd = response.json()
+    print(ikeaProd)
+    for item in ikeaProd["more"]["items"]:
+        tag =  item['product']["tag"]
+        sku  = item['product']["id"]
+        if sku in products:
+            item = products[sku]
+            if "," in  item:
+                product,stock = products[s].split(",")
+                writer.writerow([product,tag,sku,stock])
+            print("found Sku from zardanCache : {}".format(sku))
+        url = "https://zardaan.com/wp-json/wc/v3/products?sku={}".format(sku)
+        headers = {
+        'Authorization': 'Basic Y2tfYTdjNGVlM2U5NTc1MDI4MWQ5MTg1MmRlOTJkMjc1NWNkMDUyZGUyMjpjc18yNWU4NDQ4YzZkMWE1YzdkYTlhMGFlMDE0Y2M4ZWQ2YzViMGU2MWE5',
+        'Content-Type': 'application/json',
+        'Cookie': 'pxcelPage_c01002=1'
+        }
+
+        response = requests.get(url, headers=headers) 
+        zProd = response.json()
+        if(len(zProd)!=0):
+            writer.writerow([zProd[0]["name"],tag,sku,zProd[0]["stock_quantity"]])
+            with open("zarrdanProuct","a") as f: 
+                f.write(f"{sku}={zProd[0]["name"]},{zProd[0]["stock_quantity"]}")
+        else:
+            writer.writerow([item["product"]["name"],tag,sku,-1])
+            
+
+for i in range(1,MA):
+    parseIkeaFamily(i)
+
 with ftplib.FTP('ftp.zardaan.com') as ftp:
     try:
         ftp.login(os.getenv('FTP_USER'), os.getenv('FTP_PASS'))
@@ -85,3 +216,4 @@ with ftplib.FTP('ftp.zardaan.com') as ftp:
                 print("write file succesfuly")
     except ftplib.all_errors as e:
         print('FTP error:', e)
+
