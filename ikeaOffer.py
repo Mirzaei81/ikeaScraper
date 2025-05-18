@@ -50,7 +50,7 @@ def parseProd(i):
         if sku in products:
             item = products[sku]
             if "," in  item:
-                product,stock = products[s].split(",")
+                product,stock = products[sku].split(",")
                 writer.writerow([product,tag,sku,stock])
             print("found Sku from zardanCache : {}".format(sku))
         url = "https://zardaan.com/wp-json/wc/v3/products?sku={}".format(sku)
@@ -114,7 +114,7 @@ for item in prods:
         if sku in products:
             item = products[sku]
             if "," in  item:
-                products,stock = products[s].split(",")
+                products,stock = products[sku].split(",")
                 writer.writerow([products[sku],tag,sku,stock])
             print("found Sku from zardanCache : {}".format(sku))
         url = "https://zardaan.com/wp-json/wc/v3/products?sku={}".format(sku)
@@ -177,7 +177,7 @@ def parseIkeaFamily(page):
         if sku in products:
             item = products[sku]
             if "," in  item:
-                product,stock = products[s].split(",")
+                product,stock = products[sku].split(",")
                 writer.writerow([product,tag,sku,stock])
             print("found Sku from zardanCache : {}".format(sku))
         url = "https://zardaan.com/wp-json/wc/v3/products?sku={}".format(sku)
