@@ -1,3 +1,8 @@
 secrets.py
 .venv
 .env
+node_modules/
+*.jpg
+*.jpeg
+*.json
+!package.json
