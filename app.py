@@ -335,5 +335,5 @@ def get_products_sku():
         except ftplib.all_errors as e:
             print('FTP error:', e)
 if __name__ == '__main__':
-    # get_products_sku()
-    get_products_sku_by_id("30238543") #۷۰۴۷۸۱۴۰
+    get_products_sku()
+    ###get_products_sku_by_id("30238543") #۷۰۴۷۸۱۴۰
