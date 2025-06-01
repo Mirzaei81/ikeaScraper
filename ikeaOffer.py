@@ -52,15 +52,12 @@ def parseProd(i):
             if "," in  item:
                 product,stock = products[sku].split(",")
                 writer.writerow([product,tag,sku,stock])
-            print("found Sku from zardanCache : {}".format(sku))
         url = "https://zardaan.com/wp-json/wc/v3/products?sku={}".format(sku)
         headers = {
         'Authorization': 'Basic Y2tfYTdjNGVlM2U5NTc1MDI4MWQ5MTg1MmRlOTJkMjc1NWNkMDUyZGUyMjpjc18yNWU4NDQ4YzZkMWE1YzdkYTlhMGFlMDE0Y2M4ZWQ2YzViMGU2MWE5',
         'Content-Type': 'application/json',
         'Cookie': 'pxcelPage_c01002=1'
         }
-        print("getting Sku from zardan : {}".format(sku))
-
         response = requests.get(url, headers=headers) 
         zProd = response.json()
         if(len(zProd)!=0):
@@ -116,14 +113,12 @@ for item in prods:
             if "," in  item:
                 products,stock = products[sku].split(",")
                 writer.writerow([products[sku],tag,sku,stock])
-            print("found Sku from zardanCache : {}".format(sku))
         url = "https://zardaan.com/wp-json/wc/v3/products?sku={}".format(sku)
         headers = {
         'Authorization': 'Basic Y2tfYTdjNGVlM2U5NTc1MDI4MWQ5MTg1MmRlOTJkMjc1NWNkMDUyZGUyMjpjc18yNWU4NDQ4YzZkMWE1YzdkYTlhMGFlMDE0Y2M4ZWQ2YzViMGU2MWE5',
         'Content-Type': 'application/json',
         'Cookie': 'pxcelPage_c01002=1'
         }
-        print("getting Sku from zardan : {}".format(sku))
 
         response = requests.get(url, headers=headers) 
         zProd = response.json()
@@ -154,7 +149,6 @@ def parseIkeaFamily(page):
 
     token = gzip.compress(json.dumps({"list":"PRODUCTS_MAIN","end":i*24}).encode("utf-8"))
     token = base64.b64encode(token,b"-_")
-    print(token)
     params = {
         'group': 'IKEA Family offers',
         'subcategories-style': 'tree-navigation',
@@ -170,7 +164,6 @@ def parseIkeaFamily(page):
 
     response = requests.get('https://sik.search.blue.cdtapps.com/ae/en/product-group-page/more', params=params, headers=headers)
     ikeaProd = response.json()
-    print(ikeaProd)
     for item in ikeaProd["more"]["items"]:
         tag =  item['product']["tag"]
         sku  = item['product']["id"]
@@ -179,7 +172,6 @@ def parseIkeaFamily(page):
             if "," in  item:
                 product,stock = products[sku].split(",")
                 writer.writerow([product,tag,sku,stock])
-            print("found Sku from zardanCache : {}".format(sku))
         url = "https://zardaan.com/wp-json/wc/v3/products?sku={}".format(sku)
         headers = {
         'Authorization': 'Basic Y2tfYTdjNGVlM2U5NTc1MDI4MWQ5MTg1MmRlOTJkMjc1NWNkMDUyZGUyMjpjc18yNWU4NDQ4YzZkMWE1YzdkYTlhMGFlMDE0Y2M4ZWQ2YzViMGU2MWE5',
