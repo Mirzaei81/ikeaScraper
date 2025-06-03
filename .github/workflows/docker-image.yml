@@ -1,6 +1,7 @@
 name: 'PriceScrapper'
 on: 
   workflow_dispatch:
+  push:
   schedule:
     - cron: '30 5 * * 1/2'
 env: 
