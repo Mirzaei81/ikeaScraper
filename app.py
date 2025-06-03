@@ -199,7 +199,7 @@ def get_products_sku():
             writer.writerow([p["sku"],hesabId,p["stock_quantity"],p["name"],f"notFound / discontinued",ikeaResponse.status_code,tag])
             continue
         offerPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
-        itemPrice = float(item["previous"]["wholeNumber"]+item["previous"]["separator"]+item["previous"]["decimals"])
+        itemPrice = float(item["salesPrice"]["previous"]["wholeNumber"]+item["salesPrice"]["previous"]["separator"]+item["salesPrice"]["previous"]["decimals"])
         currentPrice = 0
         meta_datas = p["meta_data"]
         
@@ -294,7 +294,7 @@ def get_products_sku():
                     continue
 
                 offerPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
-                itemPrice = float(item["previous"]["wholeNumber"]+item["previous"]["separator"]+item["previous"]["decimals"])
+                itemPrice = float(item["salesPrice"]["previous"]["wholeNumber"]+item["salesPrice"]["previous"]["separator"]+item["salesPrice"]["previous"]["decimals"])
                 currentPrice = 0
                 meta_datas = p["meta_data"]
                 
