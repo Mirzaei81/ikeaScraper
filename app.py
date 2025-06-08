@@ -47,7 +47,6 @@ prices = response.json()
 
 def get_products_sku_by_id(sku):
     response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products/",params={"sku":sku},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
-    print(response.status_code)
     for p in response.json():
         data = f'{{"searchParameters":{{"input":{p["sku"]},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
         ikeaAEResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',proxies=proxy,params={"c":"sr","v":20241114},data=data)
@@ -280,7 +279,12 @@ def get_products_sku():
             if  "results" in ikeaData and len(ikeaData["results"])>0:
                 item = ikeaData["results"][0]["items"][0]["product"]
                 IKEA_NUMERIC = item["salesPrice"]["numeral"]
-                offerPrice = float(item["previous"]["wholeNumber"]+item["previous"]["separator"]+item["previous"]["decimals"])
+
+                offerPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
+                itemPrice = offerPrice
+                if "previous" in item:
+                    itemPrice = float(item["previous"]["wholeNumber"]+item["previous"]["separator"]+item["previous"]["decimals"])
+                
                 tag = item["tag"] if "tag" in item  else ""
                 isSellable = item["onlineSellable"]
                 if  not isSellable:
