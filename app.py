@@ -100,7 +100,7 @@ def get_products_sku_by_id(sku):
         IKEA_NUMERIC = item["salesPrice"]["numeral"]
         itemPrice =0
         if "previous" in item["salesPrice"]:
-            itemPrice = float(item["salesPrice"]["previous"]["wholeNumber"]+item["salesPrice"]["previous"]["separator"]+item["salesPrice"]["previous"]["decimals"])
+            itemPrice = float(item["salesPrice"]["previous"]["wholeNumber"]+item["salesPrice"]["previous"]["separator"].replace(",",".")+item["salesPrice"]["previous"]["decimals"])
         else:
             itemPrice = IKEA_NUMERIC
         isSellable = item["onlineSellable"]
@@ -203,7 +203,7 @@ def get_products_sku():
             continue
         offerPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
         if "previous" in item["salesPrice"]:
-            itemPrice = float(item["salesPrice"]["previous"]["wholeNumber"]+item["salesPrice"]["previous"]["separator"]+item["salesPrice"]["previous"]["decimals"])
+            itemPrice = float(item["salesPrice"]["previous"]["wholeNumber"]+item["salesPrice"]["previous"]["separator"].replace(",",".")+item["salesPrice"]["previous"]["decimals"])
         else:
             itemPrice = IKEA_NUMERIC
         currentPrice = 0
@@ -283,7 +283,7 @@ def get_products_sku():
                 offerPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
                 itemPrice = offerPrice
                 if "previous" in item:
-                    itemPrice = float(item["previous"]["wholeNumber"]+item["previous"]["separator"]+item["previous"]["decimals"])
+                    itemPrice = float(item["previous"]["wholeNumber"]+item["previous"]["separator"].replace(",",".")+item["previous"]["decimals"])
                 
                 tag = item["tag"] if "tag" in item  else ""
                 isSellable = item["onlineSellable"]
@@ -299,7 +299,7 @@ def get_products_sku():
 
                 offerPrice = round(IKEA_NUMERIC) if(IKEA_NUMERIC-int(IKEA_NUMERIC)>0.5) else IKEA_NUMERIC
                 if "previous" in item["salesPrice"]:
-                    itemPrice = float(item["salesPrice"]["previous"]["wholeNumber"]+item["salesPrice"]["previous"]["separator"]+item["salesPrice"]["previous"]["decimals"])
+                    itemPrice = float(item["salesPrice"]["previous"]["wholeNumber"]+item["salesPrice"]["previous"]["separator"].replace(",",".")+item["salesPrice"]["previous"]["decimals"])
                 else:
                     itemPrice = IKEA_NUMERIC
                 currentPrice = 0
