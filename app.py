@@ -119,8 +119,11 @@ def get_products_sku_by_id(sku):
         meta_datas = p["meta_data"]
         for i in range(len(p["meta_data"])):
             if p["meta_data"][i]["key"]=="_mnswmc_currency_ids":
-                itemId = json.loads(meta_datas[i]["value"])[0]
-                itemPrice *=prices[itemId]["rate"]
+                try:
+                    itemId = json.loads(meta_datas[i]["value"])[0]
+                    itemPrice *=prices[itemId]["rate"]
+                except Exception as e:
+                    break
             if p["meta_data"][i]["key"]=="_mnswmc_regular_price":
                 currentPrice = meta_datas[i]["value"]
                 print("currentPrice: ",currentPrice)    
@@ -212,8 +215,11 @@ def get_products_sku():
         meta_datas = p["meta_data"]
         for i in range(len(p["meta_data"])):
             if p["meta_data"][i]["key"]=="_mnswmc_currency_ids":
-                itemId = json.loads(meta_datas[i]["value"])[0]
-                itemPrice *=prices[itemId]["rate"]
+                try:
+                    itemId = json.loads(meta_datas[i]["value"])[0]
+                    itemPrice *=prices[itemId]["rate"]
+                except Exception as e:
+                    break
                 updateHeader = {
                     "Content-Type": "application/json"
                 }
@@ -311,8 +317,11 @@ def get_products_sku():
                 
                 for i in range(len(p["meta_data"])):
                     if p["meta_data"][i]["key"]=="_mnswmc_currency_ids":
-                        itemId = json.loads(meta_datas[i]["value"])[0]
-                        itemPrice *=prices[itemId]["rate"]
+                        try:
+                            itemId = json.loads(meta_datas[i]["value"])[0]
+                            itemPrice *=prices[itemId]["rate"]
+                        except Exception as e:
+                            break
                         meta_datas[i]["value"] = str(ceil(itemPrice/1000)*1000)
                         updateHeader = {
                             "Content-Type": "application/json"
