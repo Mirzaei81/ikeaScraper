@@ -174,9 +174,9 @@ def parseIkeaFamily(page):
                 writer.writerow([product,tag,sku,stock])
         url = "https://zardaan.com/wp-json/wc/v3/products?sku={}".format(sku)
         headers = {
-        'Authorization': 'Basic Y2tfYTdjNGVlM2U5NTc1MDI4MWQ5MTg1MmRlOTJkMjc1NWNkMDUyZGUyMjpjc18yNWU4NDQ4YzZkMWE1YzdkYTlhMGFlMDE0Y2M4ZWQ2YzViMGU2MWE5',
-        'Content-Type': 'application/json',
-        'Cookie': 'pxcelPage_c01002=1'
+            'Authorization': 'Basic Y2tfYTdjNGVlM2U5NTc1MDI4MWQ5MTg1MmRlOTJkMjc1NWNkMDUyZGUyMjpjc18yNWU4NDQ4YzZkMWE1YzdkYTlhMGFlMDE0Y2M4ZWQ2YzViMGU2MWE5',
+            'Content-Type': 'application/json',
+            'Cookie': 'pxcelPage_c01002=1'
         }
 
         response = requests.get(url, headers=headers) 
