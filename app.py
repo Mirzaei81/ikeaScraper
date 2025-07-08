@@ -114,30 +114,20 @@ def get_products_sku_by_id(sku):
         print(f"itemPrice: {itemPrice} offerPrice: {offerPrice}",end="")
         meta_datas = p["meta_data"]
         itemId = 0
-        for i in range(len(p["meta_data"])):
-            if p["meta_data"][i]["key"]=="_mnswmc_currency_ids":
-                try:
-                    itemId = json.loads(meta_datas[i]["value"])[0]
-                except Exception as e:
-                    break
-                currentPrice = meta_datas[i]["value"]
-                itemPrice *= prices[itemId]["rate"]
-                offerPrice *=  prices[itemId]["rate"]
-                meta_datas[i]["value"] = itemPrice
-                updateHeader = {
-                    "Content-Type": "application/json"
-                }
-                data={
-                    "regular_price": str(round(itemPrice/1000)*1000),
-                    "sales_price": str(round(offerPrice/1000)*1000),
-                    "sale_price_dates_from": None,
-                    "sale_price_dates_to": None
-                }
-                resp = requests.put(f"https://{os.getenv("WOOCOMERCE_HOST")}/wp-json/wc/v3/products/{p["id"]}",
-                                    headers=updateHeader
-                                    ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
-                                    ,data=json.dumps(data))
-                break
+        updateHeader = {
+            "Content-Type": "application/json"
+        }
+        data={
+            "id":p["id"],
+            "reqular_price":itemPrice,
+            "sale_price":offerPrice
+        }                
+        resp = requests.post(f"https://{os.getenv("WOOCOMERCE_HOST")}/wp-json/cwc/v1/price",
+                            headers=updateHeader
+                            ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
+                            ,data=json.dumps(data))
+        print(resp.text)
+        break
 
 
 
@@ -181,6 +171,8 @@ def get_products_sku():
             continue
         item = ikeaData["results"][0]["items"][0]["product"]
         tag = item["tag"] if "tag" in item  else ""
+        if tag == "NONE":
+            tag = "" 
         IKEA_NUMERIC = item["salesPrice"]["numeral"]
         isSellable =   item["onlineSellable"]
         if  not isSellable:
@@ -219,7 +211,7 @@ def get_products_sku():
             "sale_price": offerPrice
         })
 
-        requests.put(f"https://{os.getenv("WOOCOMERCE_HOST")}/wp-json/cwc/v1/price",
+        requests.post(f"https://{os.getenv("WOOCOMERCE_HOST")}/wp-json/cwc/v1/price",
                             headers=updateHeader
                             ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
                             ,data=json.dumps(data))
@@ -302,7 +294,7 @@ def get_products_sku():
                                 "sale_price": offerPrice
                             })
 
-                            requests.put(f"https://{os.getenv("WOOCOMERCE_HOST")}/wp-json/cwc/v1/price",
+                            requests.post(f"https://{os.getenv("WOOCOMERCE_HOST")}/wp-json/cwc/v1/price",
                                                 headers=updateHeader
                                                 ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
                                                 ,data=json.dumps(data))
@@ -343,4 +335,4 @@ def get_products_sku():
 
 if __name__ == '__main__':
     get_products_sku()
-    #get_products_sku_by_id("00138432") #۷۰۴۷۸۱۴۰
+    #get_products_sku_by_id("10568884") #۷۰۴۷۸۱۴۰
