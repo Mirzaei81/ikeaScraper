@@ -276,7 +276,7 @@ class Result:
         self.metadata = metadata
 
 
-class Welcome9:
+class IKEA_PRODUCT:
     usergroup: str
     results: List[Result]
     test_activation_triggers: TestActivationTriggersClass
