@@ -46,6 +46,7 @@ put_json_data = {
 }
 updateHeader = {
     'Content-Type': 'application/json',
+    'Cookie': 'pxcelPage_c01002=1'
 }
 
 response = requests.get(url, headers=headers)
@@ -207,15 +208,15 @@ def get_products_sku(page):
             itemPrice = get_IU_PRICE(meta_data=p["meta_data"])
 
 
-        data = json.dumps({
+        data = {
             "id": p["id"],
             "reqular_price":float(itemPrice) ,
             "sale_price": offerPrice
-        })
+        }
         res = requests.post(f"https://{os.getenv("WOOCOMERCE_HOST")}/wp-json/cwc/v1/price",
                             headers=updateHeader
                             ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
-                            ,data=json.dumps(data))
+                            ,json=data)
         print(f"updatad price for item {p['sku']} price {itemPrice} offerPrice {offerPrice} with {res.text}")
         if res.status_code == 500:
             breakpoint
