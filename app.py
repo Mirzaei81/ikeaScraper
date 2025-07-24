@@ -240,6 +240,6 @@ def get_products_sku(page):
             print('FTP error:', e)
 
 if __name__ == '__main__':
-    for i in range(1,pageCount+1):
+    for i in range(1,pageCount+2):
         get_products_sku(i)
     #get_products_sku_by_id("39533356") #۷۰۴۷۸۱۴۰properto
