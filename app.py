@@ -211,7 +211,7 @@ def get_products_sku(page):
         data = {
             "id": p["id"],
             "reqular_price":float(itemPrice) ,
-            "sale_price": offerPrice
+    "sale_price": offerPrice if tag =="NEW_LOWER_PRICE" else 0 
         }
         res = requests.post(f"https://{os.getenv("WOOCOMERCE_HOST")}/wp-json/cwc/v1/price",
                             headers=updateHeader
