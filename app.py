@@ -86,7 +86,6 @@ def get_products_sku_by_id(sku):
     try:
         ikeaData = ikeaAEResponse.json()
     except requests.exceptions.JSONDecodeError:
-        print("decode error")
         return
     
     if(len(ikeaData["results"])==0):
@@ -96,7 +95,6 @@ def get_products_sku_by_id(sku):
             json=put_json_data,
             auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
         )
-        print("item not found",resp.status_code)
 
     item = ikeaData["results"][0]["items"][0]["product"]
     IKEA_NUMERIC = item["salesPrice"]["numeral"]
@@ -106,7 +104,6 @@ def get_products_sku_by_id(sku):
         itemPrice = float(number.replace(",","."))
     else:
         itemPrice = IKEA_NUMERIC
-    print("Current Price",IKEA_NUMERIC,"OfferedPrice",itemPrice)
     isSellable = item["onlineSellable"]
     if not isSellable:
         requests.get(f'https://zardaan.com/wp-json/wc/v3/products/{p["id"]}',
@@ -207,7 +204,7 @@ def get_products_sku(page):
         else:
             itemPrice = get_IU_PRICE(meta_data=p["meta_data"])
 
-
+        if itemPrice==None:return 
         data = {
             "id": p["id"],
             "reqular_price":float(itemPrice) ,
@@ -217,7 +214,6 @@ def get_products_sku(page):
                             headers=updateHeader
                             ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
                             ,json=data)
-        print(f"updatad price for item {p['sku']} price {itemPrice} offerPrice {offerPrice} with {res.text}")
         if res.status_code == 500:
             breakpoint
         writer.writerow([p["sku"],hesabId,p["stock_quantity"],p["name"],res.status_code,f"Updated product {p['sku']}: قیمت {itemPrice} تخفیف: {offerPrice}",-1,offerPrice,IKEA_NUMERIC,tag])
