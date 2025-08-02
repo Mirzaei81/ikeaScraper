@@ -53,7 +53,7 @@ response = requests.get(url, headers=headers)
 
 prices = response.json()
 
-def get_products_sku_by_id(sku):
+def updateProductSku(sku):
     response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products/",params={"sku":sku},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
     p = response.json()[0]
     data = f'{{"searchParameters":{{"input":{p["sku"]},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
@@ -164,7 +164,7 @@ def get_IU_PRICE(meta_data):
         if meta["key"] =="_mnswmc_regular_price":
                 return meta['value']
 
-def get_products_sku(page):
+def updateProductsPage(page):
     response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",params={"page":page,"per_page":100},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
     for p in response.json():
         stock = p["stock_quantity"]
@@ -218,6 +218,10 @@ def get_products_sku(page):
             breakpoint
         writer.writerow([p["sku"],hesabId,p["stock_quantity"],p["name"],res.status_code,f"Updated product {p['sku']}: قیمت {itemPrice} تخفیف: {offerPrice}",-1,offerPrice,IKEA_NUMERIC,tag])
         
+
+if __name__ == '__main__':
+    for i in range(1,pageCount+2):
+        updateProductsPage(i)
     with ftplib.FTP('ftp.zardaan.com') as ftp:
         try:
             ftp.login(os.getenv('FTP_USER'), os.getenv('FTP_PASS'))
@@ -234,8 +238,4 @@ def get_products_sku(page):
                     print("write file succesfuly")
         except ftplib.all_errors as e:
             print('FTP error:', e)
-
-if __name__ == '__main__':
-    for i in range(1,pageCount+2):
-        get_products_sku(i)
     #get_products_sku_by_id("39533356") #۷۰۴۷۸۱۴۰properto
