@@ -168,9 +168,6 @@ def updateProductsPage(page):
     response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",params={"page":page,"per_page":100},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
     for p in response.json():
         stock = p["stock_quantity"]
-        if(stock ==None or stock<=0):
-            log_error(p["sku"],-1,stock,p["name"],response.status_code,p["id"])
-            continue
         ikeaResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=get_IKEA_Body(p["sku"]))
         ikeaData:IKEA_PRODUCT  = ikeaResponse.json()
 
