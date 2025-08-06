@@ -10,11 +10,14 @@ products = []
 output = io.StringIO()
 writer = csv.writer(output,quoting=csv.QUOTE_NONNUMERIC)
 writer.writerow(["name","tag","sku","stock"])
-with open("dist/zarddanProduct.txt","r")as f :
-    for line in f:
-        if "=" in line:
-            k,v = line.split("=")
-            products[k.strip()] = v
+try:
+    with open("dist/zarddanProduct.txt","r")as f :
+        for line in f:
+            if "=" in line:
+                k,v = line.split("=")
+                products[k.strip()] = v
+except Exception:
+    pass
 
 MAX_PRODCOUNTS = 0
 def parseProd(i):
