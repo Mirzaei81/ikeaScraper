@@ -5,7 +5,7 @@ extract multiple data types from different variables, and store the data in an
 organised manner in an external storage service.
 """
 
-from IKEA_TYPES import IKEA_PRODUCT
+
 from dotenv import load_dotenv
 import requests
 import os
@@ -48,7 +48,9 @@ updateHeader = {
     'Content-Type': 'application/json',
     'Cookie': 'pxcelPage_c01002=1'
 }
-
+stockHeader = {
+    'X-Client-ID': 'ef382663-a2a5-40d4-8afe-f0634821c0ed',
+}
 response = requests.get(url, headers=headers)
 
 prices = response.json()
@@ -169,7 +171,13 @@ def updateProductsPage(page):
     for p in response.json():
         stock = p["stock_quantity"]
         ikeaResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=get_IKEA_Body(p["sku"]))
-        ikeaData:IKEA_PRODUCT  = ikeaResponse.json()
+        ikeaStockResponse = requests.get('https://api.salesitem.ingka.com/availabilities/ru/ae', params={
+            'itemNos': p['sku'],
+            'expand': 'StoresList,Restocks,SalesLocations,DisplayLocations,ChildItems',
+        }
+        , headers=headers)
+        ikeaStockData = ikeaStockResponse.json()
+        ikeaData  = ikeaResponse.json()
 
         time.sleep(0.5)
         
@@ -205,8 +213,12 @@ def updateProductsPage(page):
         data = {
             "id": p["id"],
             "reqular_price":float(itemPrice) ,
-    "sale_price": offerPrice if tag =="NEW_LOWER_PRICE" else 0 
+            "sale_price": offerPrice if tag =="NEW_LOWER_PRICE" else 0 ,
         }
+        if len(ikeaStockData)==2:
+            data["stock"]=ikeaStockData[1].buyingOption.cashCarry.availability.quantity
+        elif  len(ikeaStockData)==1:
+            data["stock"]=ikeaStockData[1].buyingOption.cashCarry.availability.quantity
         res = requests.post(f"https://{os.getenv("WOOCOMERCE_HOST")}/wp-json/cwc/v1/price",
                             headers=updateHeader
                             ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
