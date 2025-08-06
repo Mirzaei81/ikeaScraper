@@ -15,6 +15,7 @@ import csv
 import io 
 import time
 import requests
+import re
 
 output = io.StringIO()
 writer = csv.writer(output,quoting=csv.QUOTE_NONNUMERIC)
@@ -24,10 +25,13 @@ load_dotenv()
 pageResponse = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",params={"page":1,"per_page":100},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
 pageCount =  int(pageResponse.headers["X-WP-Total"])
 
-proxy ={
-    "http":"http://127.0.0.1:10809",
-    "https":"http://127.0.0.1:10809"
-}
+if os.getenv("Debug","False")=="True":
+    proxy ={
+        "http":"http://127.0.0.1:10809",
+        "https":"http://127.0.0.1:10809"
+    }
+else:
+    proxy = None
 
 hesanfa_url = "https://api.hesabfa.com/v1/item/getByBarcode"
 url = "https://zardaan.com/wp-json/mnswmc/v1/currency/9f8e7adfcdb7c395d33d08fcd968ade8"
@@ -165,17 +169,25 @@ def get_IU_PRICE(meta_data):
     for meta in meta_data:
         if meta["key"] =="_mnswmc_regular_price":
                 return meta['value']
+def get_API_KEY():
+    pattern = r'ciaApiClientKey:"([^"]*)"'
+    res = requests.get("https://www.ikea.com/ae/en/products/javascripts/pip-main.8a697bbcff8c691d0cc0.js",proxies=proxy)
+    matches = re.findall(pattern,res.text)
+    return matches[0]
+
 
 def updateProductsPage(page):
     response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",params={"page":page,"per_page":100},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
     for p in response.json():
         stock = p["stock_quantity"]
-        ikeaResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',params={"c":"sr","v":20241114},data=get_IKEA_Body(p["sku"]))
+        ikeaResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',proxies=proxy,params={"c":"sr","v":20241114},data=get_IKEA_Body(p["sku"]))
+        apiKey = get_API_KEY()
+        stockHeader["X-Client-ID"] = apiKey
         ikeaStockResponse = requests.get('https://api.salesitem.ingka.com/availabilities/ru/ae', params={
             'itemNos': p['sku'],
             'expand': 'StoresList,Restocks,SalesLocations,DisplayLocations,ChildItems',
-        }
-        , headers=headers)
+        },proxies=proxy
+        , headers=stockHeader)
         ikeaStockData = ikeaStockResponse.json()
         ikeaData  = ikeaResponse.json()
 
@@ -215,9 +227,7 @@ def updateProductsPage(page):
             "reqular_price":float(itemPrice) ,
             "sale_price": offerPrice if tag =="NEW_LOWER_PRICE" else 0 ,
         }
-        if len(ikeaStockData)==2:
-            data["stock"]=ikeaStockData[1].buyingOption.cashCarry.availability.quantity
-        elif  len(ikeaStockData)==1:
+        if len(ikeaStockData)>=2:
             data["stock"]=ikeaStockData[1].buyingOption.cashCarry.availability.quantity
         res = requests.post(f"https://{os.getenv("WOOCOMERCE_HOST")}/wp-json/cwc/v1/price",
                             headers=updateHeader
@@ -226,8 +236,6 @@ def updateProductsPage(page):
         if res.status_code == 500:
             breakpoint
         writer.writerow([p["sku"],hesabId,p["stock_quantity"],p["name"],res.status_code,f"Updated product {p['sku']}: قیمت {itemPrice} تخفیف: {offerPrice}",-1,offerPrice,IKEA_NUMERIC,tag])
-        
-
 if __name__ == '__main__':
     for i in range(1,pageCount+2):
         updateProductsPage(i)
