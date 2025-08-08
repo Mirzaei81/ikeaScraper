@@ -227,8 +227,9 @@ def updateProductsPage(page):
             "reqular_price":float(itemPrice) ,
             "sale_price": offerPrice if tag =="NEW_LOWER_PRICE" else 0 ,
         }
-        if len(ikeaStockData)>=2:
-            data["stock"]=ikeaStockData[1].buyingOption.cashCarry.availability.quantity
+        if "availabilities" in ikeaStockData and len(ikeaStockData["availabilities"])>=2:
+           if 'availability' in  ikeaStockData["availabilities"][1]['buyingOption']['cashCarry']:
+                data["stock"]=ikeaStockData["availabilities"][1]['buyingOption']['cashCarry']['availability']['quantity']
         res = requests.post(f"https://{os.getenv("WOOCOMERCE_HOST")}/wp-json/cwc/v1/price",
                             headers=updateHeader
                             ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
