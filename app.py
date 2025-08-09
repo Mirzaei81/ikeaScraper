@@ -175,20 +175,30 @@ def get_API_KEY():
     matches = re.findall(pattern,res.text)
     return matches[0]
 
-
 def updateProductsPage(page):
     response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",params={"page":page,"per_page":100},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
     for p in response.json():
         stock = p["stock_quantity"]
+        ikeaStockData = {}
         ikeaResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',proxies=proxy,params={"c":"sr","v":20241114},data=get_IKEA_Body(p["sku"]))
         apiKey = get_API_KEY()
         stockHeader["X-Client-ID"] = apiKey
-        ikeaStockResponse = requests.get('https://api.salesitem.ingka.com/availabilities/ru/ae', params={
-            'itemNos': p['sku'],
-            'expand': 'StoresList,Restocks,SalesLocations,DisplayLocations,ChildItems',
-        },proxies=proxy
-        , headers=stockHeader)
-        ikeaStockData = ikeaStockResponse.json()
+        i=0
+        while(i<5):
+            try:
+                ikeaStockResponse = requests.get('https://api.salesitem.ingka.com/availabilities/ru/ae', params={
+                    'itemNos': p['sku'],
+                    'expand': 'StoresList,Restocks,SalesLocations,DisplayLocations,ChildItems',
+                },proxies=proxy
+                , headers=stockHeader)
+                ikeaStockData = ikeaStockResponse.json()
+                break
+            except(e):
+                time.sleep(1)
+                i+=1
+        else:
+            continue
+
         ikeaData  = ikeaResponse.json()
 
         time.sleep(0.5)
@@ -205,14 +215,14 @@ def updateProductsPage(page):
         IKEA_NUMERIC = item["salesPrice"]["numeral"]
         isSellable =   item["onlineSellable"]
         if  not isSellable:
-            log_error(p["sku"],hesabId,p["stock_quantity"],p["name"],ikeaResponse.status_code,f"Out of Stock : {isSellable}",-1,-1,-1,tag)
+            log_error(p["sku"],hesabId,p["stock_quantity"],p["name"],ikeaResponse.status_code,p["id"],f"Out of Stock : {isSellable}",-1,-1,-1,tag)
             continue
-        if ikeaResponse.status_code!=200:
-            writer.writerow([p["sku"],hesabId,p["stock_quantity"],p["name"],ikeaResponse.status_code,f"Discontinued : {isSellable}",-1,-1,-1,tag])
+        if not ikeaResponse.ok:
+            log_error([p["sku"],hesabId,p["stock_quantity"],p["name"],ikeaResponse.status_code,p["id"],f"Discontinued : {isSellable}",-1,-1,-1,tag])
             continue
 
         if len(ikeaData["results"])==0:
-            log_error(p["sku"],hesabId,p["stock_quantity"],p["name"],ikeaResponse.status_code,f"Discontinued : {isSellable}",-1,-1,-1,tag)
+            log_error(p["sku"],hesabId,p["stock_quantity"],p["name"],ikeaResponse.status_code,p["id"],f"Discontinued : {isSellable}",-1,-1,-1,tag)
             continue
         offerPrice = round_up(IKEA_NUMERIC)
         if "previous" in item["salesPrice"]:
@@ -228,8 +238,12 @@ def updateProductsPage(page):
             "sale_price": offerPrice if tag =="NEW_LOWER_PRICE" else 0 ,
         }
         if "availabilities" in ikeaStockData and len(ikeaStockData["availabilities"])>=2:
-           if 'availability' in  ikeaStockData["availabilities"][1]['buyingOption']['cashCarry']:
-                data["stock"]=ikeaStockData["availabilities"][1]['buyingOption']['cashCarry']['availability']['quantity']
+            if(ikeaStockData["availabilities"][1]["availableForCashCarry"]):
+                if 'availability' in  ikeaStockData["availabilities"][1]['buyingOption']['cashCarry']:
+                        data["stock"]=ikeaStockData["availabilities"][1]['buyingOption']['cashCarry']['availability']['quantity']
+            else:
+                log_error(p["sku"],hesabId,-1,p["name"],404,p["id"],f"Discontinued : {isSellable}",-1,-1,-1,tag)
+
         res = requests.post(f"https://{os.getenv("WOOCOMERCE_HOST")}/wp-json/cwc/v1/price",
                             headers=updateHeader
                             ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
