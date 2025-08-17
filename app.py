@@ -47,6 +47,8 @@ putHeaders = {
 put_json_data = {
     "backorders": "no",
     "backorders_allowed": False,
+    "stock_quantity":0,
+    "stock_status":"outofstock"
 }
 updateHeader = {
     'Content-Type': 'application/json',
@@ -159,6 +161,7 @@ def log_error(sku,hesabId,stock,name,status,id,desc=f"NotFound / discontinued",c
 
 def get_IKEA_Body(sku):
     return f'{{"searchParameters":{{"input":{sku},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
+
 def round_up(number):
  return round(number) if(number-int(number)>0.5) else number
 
@@ -166,6 +169,7 @@ def get_IU_PRICE(meta_data):
     for meta in meta_data:
         if meta["key"] =="_mnswmc_regular_price":
                 return meta['value']
+
 def get_API_KEY():
     pattern = r'ciaApiClientKey:"([^"]*)"'
     res = requests.get("https://www.ikea.com/ae/en/products/javascripts/pip-main.8a697bbcff8c691d0cc0.js",proxies=proxy)
@@ -246,23 +250,24 @@ def updateProductsPage(page):
         if res.status_code == 500:
             breakpoint
         writer.writerow([p["sku"],hesabId,p["stock_quantity"],p["name"],res.status_code,f"Updated product {p['sku']}: قیمت {itemPrice} تخفیف: {offerPrice}",-1,offerPrice,IKEA_NUMERIC,tag])
+
 if __name__ == '__main__':
-    # for i in range(1,pageCount+2):
-    #     updateProductsPage(i)
-    # with ftplib.FTP('ftp.zardaan.com') as ftp:
-    #     try:
-    #         ftp.login(os.getenv('FTP_USER'), os.getenv('FTP_PASS'))
-    #         filename = 'out.csv'
-    #         with open('tmp.csv', 'wb') as fd:
-    #             import codecs
-    #             fd.write(codecs.BOM_UTF8)
-    #             fd.write(output.getvalue().encode('utf-8'))
-    #         with open('tmp.csv',"rb") as fd:
-    #             res = ftp.storbinary("STOR " + filename, fd)
-    #             if not res.startswith('226-File successfully transferred'):
-    #                 print(f'Upload failed {res}')
-    #             else:
-    #                 print("write file succesfuly")
-    #     except ftplib.all_errors as e:
-    #         print('FTP error:', e)
-    updateProductSku("39552104") #۷۰۴۷۸۱۴۰properto
+    for i in range(1,pageCount+2):
+        updateProductsPage(i)
+    with ftplib.FTP('ftp.zardaan.com') as ftp:
+        try:
+            ftp.login(os.getenv('FTP_USER'), os.getenv('FTP_PASS'))
+            filename = 'out.csv'
+            with open('tmp.csv', 'wb') as fd:
+                import codecs
+                fd.write(codecs.BOM_UTF8)
+                fd.write(output.getvalue().encode('utf-8'))
+            with open('tmp.csv',"rb") as fd:
+                res = ftp.storbinary("STOR " + filename, fd)
+                if not res.startswith('226-File successfully transferred'):
+                    print(f'Upload failed {res}')
+                else:
+                    print("write file succesfuly")
+        except ftplib.all_errors as e:
+            print('FTP error:', e)
+    # updateProductSku("39552104") #۷۰۴۷۸۱۴۰properto
