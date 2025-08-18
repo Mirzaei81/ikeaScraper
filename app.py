@@ -203,7 +203,6 @@ def updateProductsPage(page):
 
         ikeaData  = ikeaResponse.json()
 
-        time.sleep(0.5)
         
         hesabId =get_hesab_id(p["sku"])
         
