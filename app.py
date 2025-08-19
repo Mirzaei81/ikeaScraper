@@ -6,6 +6,7 @@ organised manner in an external storage service.
 """
 
 
+from multiprocessing import Pool
 from dotenv import load_dotenv
 import requests
 import os
@@ -60,6 +61,7 @@ stockHeader = {
 response = requests.get(url, headers=headers)
 
 prices = response.json()
+chunkSize =  pageCount//4
 
 def updateProductSku(sku):
 
@@ -81,7 +83,7 @@ def updateProductSku(sku):
             ikeaStockData = ikeaStockResponse.json()
             break
         except(e):
-            time.sleep(1)
+            time.sleep(0.2)
             i+=1
     else:
         return
@@ -180,6 +182,7 @@ def updateProductsPage(page):
     response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",params={"page":page,"per_page":100},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
     for p in response.json():
         stock = p["stock_quantity"]
+        if p["brands"][0]["id"]!=3721: continue
         itemPrice=None
         ikeaStockData = {}
         ikeaResponse = requests.post('https://sik.search.blue.cdtapps.com/ae/en/search',proxies=proxy,params={"c":"sr","v":20241114},data=get_IKEA_Body(p["sku"]))
@@ -196,7 +199,7 @@ def updateProductsPage(page):
                 ikeaStockData = ikeaStockResponse.json()
                 break
             except(e):
-                time.sleep(1)
+                time.sleep(0.2)
                 i+=1
         else:
             continue
@@ -247,13 +250,16 @@ def updateProductsPage(page):
                             headers=updateHeader
                             ,auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET"))
                             ,json=data)
-        if res.status_code == 500:
-            breakpoint
         writer.writerow([p["sku"],hesabId,p["stock_quantity"],p["name"],res.status_code,f"Updated product {p['sku']}: قیمت {itemPrice} تخفیف: {offerPrice}",-1,offerPrice,IKEA_NUMERIC,tag])
 
-if __name__ == '__main__':
-    for i in range(1,pageCount+2):
+def runner(idx):
+    for i in range(idx,min(idx+chunkSize,pageCount)):
         updateProductsPage(i)
+
+if __name__ == '__main__':
+    data = range(chunkSize)
+    with Pool() as pool:
+        res = pool.map(runner,data)
     with ftplib.FTP('ftp.zardaan.com') as ftp:
         try:
             ftp.login(os.getenv('FTP_USER'), os.getenv('FTP_PASS'))
