@@ -64,7 +64,6 @@ prices = response.json()
 chunkSize =  pageCount//4
 
 def updateProductSku(sku):
-
     response = requests.get("https://"+os.getenv("WOOCOMERCE_HOST")+"/wp-json/wc/v3/products",params={"sku":sku},auth=(os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")))
     p = response.json()[0]
     stock = p["stock_quantity"]
