@@ -1,0 +1,103 @@
+from posix import write
+import aiofiles
+from aiofiles.base import AiofilesContextManager
+from aiofiles.threadpool.text import AsyncTextIOWrapper 
+from aiohttp import BasicAuth, ClientSession
+import aioftp
+import ijson
+import os 
+from aiocsv import AsyncWriter
+from csv import QUOTE_NONNUMERIC
+import queue
+from logging.handlers import QueueHandler,QueueListener,RotatingFileHandler
+import logging
+import json
+log_queue     = queue.Queue()
+queue_handler = QueueHandler(log_queue)  
+root = logging.getLogger()
+root.addHandler(queue_handler)
+rot_handler    = RotatingFileHandler("zardan.logger",mode="w")   # The blocking handler.
+queue_listener = QueueListener(log_queue, 
+                               rot_handler)
+queue_listener.start()
+SECRET = os.getenv("SECRET")
+assert SECRET is not None
+coockie = {"pxcelPage_c01002":"1"}
+headers = {
+        'Content-Type': 'application/json',
+        }
+KEY,SECRET_KEY = os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")
+assert KEY is not None
+assert SECRET_KEY is not None
+url = "https://zardaan.com/wp-json/wc/v3/get_nav/"
+
+auth = BasicAuth(KEY,password=SECRET_KEY)
+
+put_json_data = {
+        "backorders": "no",
+        "backorders_allowed": False,
+        "stock_quantity":0,
+        "stock_status":"outofstock"
+        }
+offersPath = "offers.csv"
+client:ClientSession|None = None
+fout:AsyncTextIOWrapper|None = None 
+ferr:AsyncTextIOWrapper|None = None
+writer:AsyncWriter|None = None
+async def log_error(sku,stock,name,id,reason,tag=""):
+    assert writer is not None
+    await writer.writerow([sku,stock,name,reason,tag])
+
+
+    res =await client.put(
+        f'https://zardaan.com/wp-json/wc/v3/products/{id}',
+        json=put_json_data,
+        auth=auth)
+    root.warning(await res.text())
+
+async def init():
+    global ferr,writer,client
+    f = await aiofiles.open(offersPath,"w", encoding="utf-8-sig")
+    client = ClientSession("https://zardaan.com",cookies=coockie,headers=headers)
+    ferr = await aiofiles.open('zarrdanProuct.txt',"w", encoding="utf-8-sig")
+    writer = AsyncWriter(f,quoting=QUOTE_NONNUMERIC)
+    await writer.writerow(["name","tag","sku","stock"])
+    
+async def getItems():
+    response =await  client.get(url)
+    async for item in ijson.items_async(response.content,"response.item"):
+        yield item
+async def updateItem(base_item:dict,stock:str,price:str,tag:str):
+    assert writer is not None
+    assert ferr is not None
+    url = "https://zardaan.com/wp-json/wc/v3/price"
+    payload = {
+        "id": base_item["post_id"],
+        "price": price,
+        "stock":stock,
+    }
+    headers = {
+    'Content-Type': 'application/json',
+    'Cookie': 'pxcelPage_c01002=1'
+    }
+
+    response =await client.post(url, headers=headers,auth=auth,json=payload) 
+    root.info(await response.text())
+async def uploadResults():
+    username=  os.getenv('FTP_USER')
+    assert username is not None
+    password =  os.getenv('FTP_PASS')
+    assert password is not None
+    assert fout is not None
+    await fout.flush()
+    await fout.close()
+    async with aioftp.Client.context('ftp.zardaan.com',21,username,password) as ftp:
+        try:
+            filename = 'offers.csv'
+            await ftp.upload(filename, offersPath)
+            root.info("write file succesfuly")
+        except aioftp.errors as e:
+            root.error('FTP error:', e)
+
+async def close():
+    await client.close()
