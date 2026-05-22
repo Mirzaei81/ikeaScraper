@@ -1,0 +1,16 @@
+{
+  "name": "ikea-scraper-project",
+  "version": "1.0.0",
+  "description": "INTRODUCTION",
+  "type": "commonjs",
+  "main": "main.js",
+  "scripts": {
+    "start":"tsc && node main.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "MthBest",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer-core": "^24.9.0"
+  }
+}
