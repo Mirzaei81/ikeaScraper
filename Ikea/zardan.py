@@ -25,6 +25,7 @@ assert SECRET is not None
 coockie = {"pxcelPage_c01002":"1"}
 headers = {
         'Content-Type': 'application/json',
+        'Authorization': 'Basic Y2tfYTdjNGVlM2U5NTc1MDI4MWQ5MTg1MmRlOTJkMjc1NWNkMDUyZGUyMjpjc18yNWU4NDQ4YzZkMWE1YzdkYTlhMGFlMDE0Y2M4ZWQ2YzViMGU2MWE5',
         }
 KEY,SECRET_KEY = os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")
 assert KEY is not None
@@ -52,7 +53,7 @@ async def log_error(sku,stock,name,id,reason,tag=""):
     res =await client.put(
         f'https://zardaan.com/wp-json/wc/v3/products/{id}',
         json=put_json_data,
-        auth=auth)
+        )
     root.warning(await res.text())
 
 async def init():
@@ -67,10 +68,10 @@ async def getItems():
     response =await  client.get(url)
     async for item in ijson.items_async(response.content,"response.item"):
         yield item
-async def updateItem(base_item:dict,stock:str,price:str,tag:str):
+async def updateItem(base_item:dict,price:str,stock:str,tag:str):
     assert writer is not None
     assert ferr is not None
-    url = "https://zardaan.com/wp-json/wc/v3/price"
+    url = "https://zardaan.com/wp-json/cwc/v1/price"
     payload = {
         "id": base_item["post_id"],
         "price": price,
@@ -78,11 +79,13 @@ async def updateItem(base_item:dict,stock:str,price:str,tag:str):
     }
     headers = {
     'Content-Type': 'application/json',
+    'Authorization': 'Basic Y2tfYTdjNGVlM2U5NTc1MDI4MWQ5MTg1MmRlOTJkMjc1NWNkMDUyZGUyMjpjc18yNWU4NDQ4YzZkMWE1YzdkYTlhMGFlMDE0Y2M4ZWQ2YzViMGU2MWE5',
     'Cookie': 'pxcelPage_c01002=1'
     }
 
-    response =await client.post(url, headers=headers,auth=auth,json=payload) 
-    root.info(await response.text())
+    response =await client.post(url, headers=headers,json=payload)
+    rsText = await response.text()
+    root.info(rsText)
 async def uploadResults():
     username=  os.getenv('FTP_USER')
     assert username is not None
