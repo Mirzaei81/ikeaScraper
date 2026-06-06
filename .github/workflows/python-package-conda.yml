@@ -13,6 +13,7 @@ env:
   WOOCOMERCE_HOST: ${{ secrets.WOOCOMERCE_HOST }}
   USER: ${{ secrets.USER }}
   PASS: ${{ secrets.PASS }}
+  SECRET: ${{ secrets.SECRET }}
   FTP_PASS: ${{ secrets.FTP_PASS }}
   FTP_USER: ${{ secrets.FTP_USER }}
 jobs:
