@@ -3,6 +3,7 @@ from typing import Dict
 from aiohttp import ClientSession
 import json
 import os
+from .zardan import root
 
 from Ikea.zardan import log_error 
 DEBUG = os.getenv("Debug","False")=="True"
@@ -72,12 +73,16 @@ async def getPrice(sku:int):
         return None,None
     return data["results"][0]["items"][0]["product"]["salesPrice"]["numeral"],data["results"][0]["items"][0]["product"]["tag"]
 async def getProductDetail(item:Dict):
-    sku =  item["SKU"]
-    name = item["name"]
-    id = item["post_id"]
-    price,tag = await getPrice(sku)
-    if not price:
-        await log_error(sku,-1,name,id,tag)
+    try:
+        sku =  item["SKU"]
+        name = item["name"]
+        id = item["post_id"]
+        price,tag = await getPrice(sku)
+        if not price:
+            await log_error(sku,-1,name,id,tag)
+            return None,None,None
+        stock = await getStock(sku)
+        return price,tag,stock
+    except Exception as e:
+        root.critical("Error in item detail"+str(item)+"Error:"+str(e))
         return None,None,None
-    stock = await getStock(sku)
-    return price,tag,stock
