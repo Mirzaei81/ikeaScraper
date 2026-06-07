@@ -11,7 +11,7 @@ from csv import QUOTE_NONNUMERIC
 import queue
 from logging.handlers import QueueHandler,QueueListener,RotatingFileHandler
 import logging
-import json
+from aiohttp_client_rate_limiter.ClientSession import RateLimitedClientSession
 log_queue     = queue.Queue()
 queue_handler = QueueHandler(log_queue)  
 root = logging.getLogger()
@@ -42,7 +42,7 @@ put_json_data = {
         "stock_status":"outofstock"
         }
 offersPath = "offers.csv"
-client:ClientSession|None = None
+client:RateLimitedClientSession|None = None
 fout:AsyncTextIOWrapper|None = None 
 ferr:AsyncTextIOWrapper|None = None
 writer:AsyncWriter|None = None
@@ -85,7 +85,7 @@ async def getmnscwPrices():
 async def init():
     global ferr,writer,client
     f = await aiofiles.open(offersPath,"w", encoding="utf-8-sig")
-    client = ClientSession("https://zardaan.com",cookies=coockie,headers=headers)
+    client = RateLimitedClientSession(base_url="https://zardaan.com",max_concur=5,reqs_per_period=10,period_in_secs=30,cookies=coockie,headers=headers)
     ferr = await aiofiles.open('zarrdanProuct.txt',"w", encoding="utf-8-sig")
     writer = AsyncWriter(f,quoting=QUOTE_NONNUMERIC)
     await writer.writerow(["name","tag","sku","stock"])
