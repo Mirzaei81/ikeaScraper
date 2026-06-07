@@ -106,8 +106,8 @@ async def updateItem(base_item:dict,price:str,stock:str,tag:str):
     curId = base_item["currency_id"]
     payload = {
         "id": base_item["post_id"],
-        "price": round(price)*currencies[curId]["rate"]*10,
-        "base":round(price),
+        "price": round(price)*currencies[curId]["rate"]*100,
+        "base":round(price) * 10,
         "stock":stock,
     }
     headers = {
@@ -115,10 +115,14 @@ async def updateItem(base_item:dict,price:str,stock:str,tag:str):
     'Authorization': 'Basic Y2tfNmM4MzBmNTQ0NGRlOTBkZGQxNmYwNzZjZjAwZTEwZTMzY2MzODYxMjpjc19lMzUzNzExYzFlNmZiNzUzOTA0OTY4NjRkZTFjNDBiOTQ5MjQ5YmZj',
     'Cookie': 'pxcelPage_c01002=1'
     }
-
-    response =await client.post(url, headers=headers,json=payload)
-    rsText = await response.text()
-    root.info(rsText)
+    while (retry:=0)<5:
+        try:
+            response =await client.post(url, headers=headers,json=payload,timeout=1000*2**retry)
+            rsText = await response.text()
+            root.info(rsText)
+            break
+        except Exception:
+            retry+=1
 async def uploadResults():
     username=  os.getenv('FTP_USER')
     assert username is not None
