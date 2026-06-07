@@ -98,7 +98,7 @@ async def getItems():
         async for item in ijson.items_async(response.content,"response.item"):
             yield item
     except Exception as e:
-        root.critical("Failed at parsing items",item,"error",e)
+        root.critical("Failed at parsing items"+str(item)+"error"+str(e))
 async def updateItem(base_item:dict,price:str,stock:str,tag:str):
     assert writer is not None
     assert ferr is not None
