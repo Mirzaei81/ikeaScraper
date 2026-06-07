@@ -92,13 +92,15 @@ async def init():
     await getmnscwPrices()
     
 async def getItems():
-    item =None
-    try:
-        response =await  client.get(url)
-        async for item in ijson.items_async(response.content,"response.item"):
-            yield item
-    except Exception as e:
-        root.critical("Failed at parsing items"+str(item)+"error"+str(e))
+    while (retry:=0)<5:
+        try:
+            response =await  client.get(url)
+            async for item in ijson.items_async(response.content,"response.item"):
+                yield item
+                break
+        except Exception as e:
+            root.critical("Failed getting items")
+            retry+=1
 async def updateItem(base_item:dict,price:str,stock:str,tag:str):
     assert writer is not None
     assert ferr is not None

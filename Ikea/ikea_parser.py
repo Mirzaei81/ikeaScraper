@@ -49,6 +49,7 @@ async def getStock(sku:int):
     return data["availabilities"][0]['buyingOption']["cashCarry"]["availability"]["quantity"]
 async def getPrice(sku:int):
     assert priceSession is not None
+    if not sku:return None
     path = "/om/en/search"
     params = {
         'c': 'sr',
