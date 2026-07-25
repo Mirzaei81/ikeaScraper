@@ -1,4 +1,5 @@
 from posix import write
+import sys
 import aiofiles
 from aiofiles.base import AiofilesContextManager
 from aiofiles.threadpool.text import AsyncTextIOWrapper 
@@ -11,7 +12,7 @@ from csv import QUOTE_NONNUMERIC
 import queue
 from logging.handlers import QueueHandler,QueueListener,RotatingFileHandler
 import logging
-import json
+
 log_queue     = queue.Queue()
 queue_handler = QueueHandler(log_queue)  
 root = logging.getLogger()
@@ -34,7 +35,7 @@ url = "https://zardaan.com/wp-json/wc/v3/get_nav/"
 
 auth = BasicAuth(KEY,password=SECRET_KEY)
 
-
+csvCount =0
 put_json_data = {
         "backorders": "no",
         "backorders_allowed": False,
@@ -47,6 +48,7 @@ fout:AsyncTextIOWrapper|None = None
 ferr:AsyncTextIOWrapper|None = None
 writer:AsyncWriter|None = None
 async def log_error(sku,stock,name,id,reason,tag=""):
+    global csvCount
     assert writer is not None
     await writer.writerow([sku,stock,name,reason,tag])
 
@@ -78,16 +80,16 @@ async def getmnscwPrices():
         'cookie': 'pxcelPage_c01002=1; wp-settings-2=libraryContent%3Dbrowse%26editor%3Dtinymce%26posts_list_mode%3Dlist%26advImgDetails%3Dhide; wp-settings-time-2=1779256642; d_user_session=3d6c016bd7bef3249359408a469a2850aa5fffc5e88a388b67d8fc68c0898972522466f4c5d446e6b92ba6b918b5cda9c5946eabbb392b3181f5ffb6983d4dc5',
     }
 
-    response = await ClientSession().get(url, headers=headers)
+    response = await ClientSession().get(url, headers=headers,timeout=1000)
 
     currencies = await response.json()
 
 async def init():
-    global ferr,writer,client
-    f = await aiofiles.open(offersPath,"w", encoding="utf-8-sig")
+    global ferr,writer,client,fout
+    fout = await aiofiles.open(offersPath,"w", encoding="utf-8-sig")
     client = ClientSession("https://zardaan.com",cookies=coockie,headers=headers)
     ferr = await aiofiles.open('zarrdanProuct.txt',"w", encoding="utf-8-sig")
-    writer = AsyncWriter(f,quoting=QUOTE_NONNUMERIC)
+    writer = AsyncWriter(fout,quoting=QUOTE_NONNUMERIC)
     await writer.writerow(["name","tag","sku","stock"])
     await getmnscwPrices()
     
@@ -97,11 +99,13 @@ async def getItems():
             response =await  client.get(url)
             async for item in ijson.items_async(response.content,"response.item"):
                 yield item
-                break
+            break
         except Exception as e:
             root.critical("Failed getting items")
             retry+=1
+rows =0 
 async def updateItem(base_item:dict,price:str,stock:str,tag:str):
+    global csvCount
     assert writer is not None
     assert ferr is not None
     url = "https://zardaan.com/wp-json/wc/v3/price4/"
@@ -117,11 +121,20 @@ async def updateItem(base_item:dict,price:str,stock:str,tag:str):
     'Authorization': 'Basic Y2tfNmM4MzBmNTQ0NGRlOTBkZGQxNmYwNzZjZjAwZTEwZTMzY2MzODYxMjpjc19lMzUzNzExYzFlNmZiNzUzOTA0OTY4NjRkZTFjNDBiOTQ5MjQ5YmZj',
     'Cookie': 'pxcelPage_c01002=1'
     }
+    writer.writerow()
     while (retry:=0)<5:
         try:
             response =await client.post(url, headers=headers,json=payload,timeout=1000*2**retry)
             rsText = await response.text()
             root.info(rsText)
+        # [sku,stock,name,reason,tag]
+            writer.writerow([base_item["sku"],stock,base_item["name"],"success",tag])
+            rows+=1
+            if rows==100:
+                sys.exit(0)
+            
+            if csvCount==50:
+                breakpoint
             break
         except Exception:
             retry+=1

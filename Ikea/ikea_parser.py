@@ -1,4 +1,3 @@
-from csv import writer
 from typing import Dict
 from aiohttp import ClientSession
 import json
@@ -67,12 +66,16 @@ async def getPrice(sku:int):
   ]
 }
 
-    res = await priceSession.post(path, params=params, headers=priceHeaders, json=body)
-    resText = await res.text()
-    data =json.loads(resText)
-    if len(data["results"])==0:
-        return None,None
-    return data["results"][0]["items"][0]["product"]["salesPrice"]["numeral"],data["results"][0]["items"][0]["product"]["tag"]
+    while (retry:=0)<5:
+        try:
+            res = await priceSession.post(path, params=params, headers=priceHeaders, json=body,timeout=10000*2**retry)
+            resText = await res.text()
+            data =json.loads(resText)
+            if len(data["results"])==0:
+                return None,None
+            return data["results"][0]["items"][0]["product"]["salesPrice"]["numeral"],data["results"][0]["items"][0]["product"]["tag"]
+        except Exception as e:
+            retry+=1
 async def getProductDetail(item:Dict):
     try:
         sku =  item["SKU"]
