@@ -12,4 +12,6 @@ async def main():
                 await updateItem(i,price,stock,tag)
     except Exception as e:
         print(e)
-asyncio.wait_for(main(),timeout=3600*5+56*60)
+async def runner():
+    await asyncio.wait_for(main(),timeout=3600*5+56*60)
+asyncio.run(runner())
