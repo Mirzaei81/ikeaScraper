@@ -5,8 +5,11 @@ async def main():
     i=0 
     await zardanInit()
     await ikeaInit()
-    async for  i in getItems():
-        price,tag,stock= await getProductDetail(i)
-        if price:
-            await updateItem(i,price,stock,tag)
-asyncio.run(main())
+    try:
+        async for  i in getItems():
+            price,tag,stock= await getProductDetail(i)
+            if price:
+                await updateItem(i,price,stock,tag)
+    except Exception as e:
+        print(e)
+asyncio.wait_for(main(),timeout=3600*5+56*60)

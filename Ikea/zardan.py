@@ -46,11 +46,17 @@ offersPath = "offers.csv"
 client:ClientSession|None = None
 fout:AsyncTextIOWrapper|None = None 
 ferr:AsyncTextIOWrapper|None = None
+fPostId:AsyncTextIOWrapper|None = None
 writer:AsyncWriter|None = None
+postId = '100000000'
+
 async def log_error(sku,stock,name,id,reason,tag=""):
     global csvCount
     assert writer is not None
     await writer.writerow([sku,stock,name,reason,tag])
+    await fPostId.seek(0)
+    await fPostId.write(id)
+    await fPostId.truncate
 
 
     res =await client.put(
@@ -85,18 +91,22 @@ async def getmnscwPrices():
     currencies = await response.json()
 
 async def init():
-    global ferr,writer,client,fout
+    global ferr,writer,client,fout,fPostId,postId
     fout = await aiofiles.open(offersPath,"w", encoding="utf-8-sig")
     client = ClientSession("https://zardaan.com",cookies=coockie,headers=headers)
     ferr = await aiofiles.open('zarrdanProuct.txt',"w", encoding="utf-8-sig")
+    fPostId = await aiofiles.open("post.id","r+", encoding="utf-8-sig")
+    await fPostId.seek(0)
+    postId = await fPostId.read()
     writer = AsyncWriter(fout,quoting=QUOTE_NONNUMERIC)
     await writer.writerow(["name","tag","sku","stock"])
     await getmnscwPrices()
     
 async def getItems():
+    global postId
     while (retry:=0)<5:
         try:
-            response =await  client.get(url)
+            response =await client.get(url,params={'id':postId})
             async for item in ijson.items_async(response.content,"response.item"):
                 yield item
             break
@@ -105,10 +115,10 @@ async def getItems():
             retry+=1
 rows =0 
 async def updateItem(base_item:dict,price:str,stock:str,tag:str):
-    global csvCount
+    global csvCount,rows
     assert writer is not None
     assert ferr is not None
-    url = "https://zardaan.com/wp-json/wc/v3/price4/"
+    url = "https://zardaan.com/wp-json/wc/v3/price/"
     curId = base_item["currency_id"]
     payload = {
         "id": base_item["post_id"],
@@ -121,22 +131,22 @@ async def updateItem(base_item:dict,price:str,stock:str,tag:str):
     'Authorization': 'Basic Y2tfNmM4MzBmNTQ0NGRlOTBkZGQxNmYwNzZjZjAwZTEwZTMzY2MzODYxMjpjc19lMzUzNzExYzFlNmZiNzUzOTA0OTY4NjRkZTFjNDBiOTQ5MjQ5YmZj',
     'Cookie': 'pxcelPage_c01002=1'
     }
-    writer.writerow()
     while (retry:=0)<5:
         try:
             response =await client.post(url, headers=headers,json=payload,timeout=1000*2**retry)
             rsText = await response.text()
             root.info(rsText)
-        # [sku,stock,name,reason,tag]
-            writer.writerow([base_item["sku"],stock,base_item["name"],"success",tag])
+            await writer.writerow([base_item["SKU"],stock,base_item["name"],"success",tag])
+            await fPostId.seek(0)
+            await fPostId.write(base_item['post_id'])
+            await fPostId.truncate()
             rows+=1
-            if rows==100:
-                sys.exit(0)
-            
-            if csvCount==50:
-                breakpoint
+            if rows%100==0:
+                await fout.flush()
+                print("flushed")
             break
-        except Exception:
+        except Exception as e:
+            print(e)
             retry+=1
 async def uploadResults():
     username=  os.getenv('FTP_USER')

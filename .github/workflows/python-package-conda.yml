@@ -29,3 +29,11 @@ jobs:
         cache: 'pip'
     - run: pip install -r requirements.txt
     - run : python main.py
+
+    - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff --staged --quiet || git commit -m "Auto-commit: workflow completed"
+          git push
