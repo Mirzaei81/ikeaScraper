@@ -3,6 +3,7 @@ from aiohttp import ClientSession
 import json
 import os
 from .zardan import root
+import traceback 
 
 from Ikea.zardan import log_error 
 DEBUG = os.getenv("Debug","False")=="True"
@@ -88,5 +89,5 @@ async def getProductDetail(item:Dict):
         stock = await getStock(sku)
         return price,tag,stock
     except Exception as e:
-        root.critical("Error in item detail"+str(item)+"Error:"+str(e))
+        root.critical("Error in item detail"+str(item)+"Error:"+str(e),traceback.format_exception(e))
         return None,None,None

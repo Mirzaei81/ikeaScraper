@@ -1,7 +1,6 @@
-from posix import write
-import sys
+from datetime import datetime
+
 import aiofiles
-from aiofiles.base import AiofilesContextManager
 from aiofiles.threadpool.text import AsyncTextIOWrapper 
 from aiohttp import BasicAuth, ClientSession
 import aioftp
@@ -12,6 +11,7 @@ from csv import QUOTE_NONNUMERIC
 import queue
 from logging.handlers import QueueHandler,QueueListener,RotatingFileHandler
 import logging
+import resend
 
 log_queue     = queue.Queue()
 queue_handler = QueueHandler(log_queue)  
@@ -31,17 +31,17 @@ headers = {
 KEY,SECRET_KEY = os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")
 assert KEY is not None
 assert SECRET_KEY is not None
+
+
+RESEND_API= os.getenv("RESEND_API")
+assert RESEND_API is not None
+resend.api_key = RESEND_API
+
+
 url = "https://zardaan.com/wp-json/wc/v3/get_nav/"
 
 auth = BasicAuth(KEY,password=SECRET_KEY)
 
-csvCount =0
-put_json_data = {
-        "backorders": "no",
-        "backorders_allowed": False,
-        "stock_quantity":0,
-        "stock_status":"outofstock"
-        }
 offersPath = "offers.csv"
 client:ClientSession|None = None
 fout:AsyncTextIOWrapper|None = None 
@@ -51,7 +51,6 @@ writer:AsyncWriter|None = None
 postId = '100000000'
 
 async def log_error(sku,stock,name,id,reason,tag=""):
-    global csvCount
     assert writer is not None
     await writer.writerow([sku,stock,name,reason,tag])
     await fPostId.seek(0)
@@ -59,9 +58,10 @@ async def log_error(sku,stock,name,id,reason,tag=""):
     await fPostId.truncate
 
 
-    res =await client.put(
-        f'https://zardaan.com/wp-json/wc/v3/products/{id}',
-        json=put_json_data,
+    res =await client.post(
+        'https://zardaan.com/wp-json/wc/v3/set_draft',
+        json={"id":id},
+        args={"id":id}
         )
     root.warning(await res.text())
 currencies = {}
@@ -92,12 +92,16 @@ async def getmnscwPrices():
 
 async def init():
     global ferr,writer,client,fout,fPostId,postId
-    fout = await aiofiles.open(offersPath,"w", encoding="utf-8-sig")
+    fout = await aiofiles.open(offersPath,"a+", encoding="utf-8-sig")
     client = ClientSession("https://zardaan.com",cookies=coockie,headers=headers)
     ferr = await aiofiles.open('zarrdanProuct.txt',"w", encoding="utf-8-sig")
-    fPostId = await aiofiles.open("post.id","r+", encoding="utf-8-sig")
+    fPostId = await aiofiles.open("post.id","w+")
     await fPostId.seek(0)
     postId = await fPostId.read()
+    if len(postId)==0:
+        postId="1000000"
+
+
     writer = AsyncWriter(fout,quoting=QUOTE_NONNUMERIC)
     await writer.writerow(["name","tag","sku","stock"])
     await getmnscwPrices()
@@ -109,13 +113,29 @@ async def getItems():
             response =await client.get(url,params={'id':postId})
             async for item in ijson.items_async(response.content,"response.item"):
                 yield item
+             #send email here and remove offersPath buffer
+            await fPostId.seek(0)
+            await fPostId.write("100000")
+            await fPostId.truncate()
+            await fout.flush()
+            with open(offersPath,"rb") as f:
+                body = f.read()
+                params: resend.Emails.SendParams = {
+                    "from": "ZardaanBot@namakiplus.ir",
+                    "to": ["aam.mirzaei@gmail.com"],
+                    "subject": "Update pricing Info",
+                    "html": "<strong>it works!</strong>",
+                    "attachments":[resend.Attachment(content=list(body),filename="zardaan-"+datetime.now().strftime("%m-%d,%H:%M:%S")+".csv")]
+                }
+                email = resend.Emails.send(params)
+                root.info(email)
             break
         except Exception as e:
             root.critical("Failed getting items")
             retry+=1
 rows =0 
 async def updateItem(base_item:dict,price:str,stock:str,tag:str):
-    global csvCount,rows
+    global rows
     assert writer is not None
     assert ferr is not None
     url = "https://zardaan.com/wp-json/wc/v3/price/"
@@ -143,7 +163,6 @@ async def updateItem(base_item:dict,price:str,stock:str,tag:str):
             rows+=1
             if rows%100==0:
                 await fout.flush()
-                print("flushed")
             break
         except Exception as e:
             print(e)
@@ -164,5 +183,9 @@ async def uploadResults():
         except aioftp.errors as e:
             root.error('FTP error:', e)
 
-async def close():
-    await client.close()
+async def dispose():
+    if fout and fPostId and ferr and client:
+        await fout.flush()
+        await fPostId.flush()
+        await ferr.flush()
+        await client.close()

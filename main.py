@@ -1,6 +1,6 @@
 import asyncio
 from Ikea.ikea_parser import getProductDetail,init as ikeaInit
-from Ikea.zardan import updateItem,getItems,init as zardanInit
+from Ikea.zardan import updateItem,getItems,init as zardanInit,dispose
 async def main():
     i=0 
     await zardanInit()
@@ -13,5 +13,8 @@ async def main():
     except Exception as e:
         print(e)
 async def runner():
-    await asyncio.wait_for(main(),timeout=3600*5+56*60)
+    try:
+        await asyncio.wait_for(main(),timeout=3600*5+56*60)
+    except Exception as e:
+        await dispose()
 asyncio.run(runner())
