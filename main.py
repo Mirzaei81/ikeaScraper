@@ -14,7 +14,7 @@ async def main():
         print(e)
 async def runner():
     try:
-        await asyncio.wait_for(main(),timeout=120)
+        await asyncio.wait_for(main(),timeout=3600*5+60*57)
     except Exception as e:
         await dispose()
 asyncio.run(runner())
