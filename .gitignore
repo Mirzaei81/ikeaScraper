@@ -6,4 +6,3 @@ node_modules/
 *.jpeg
 *.json
 !package.json
-*.csv
