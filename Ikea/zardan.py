@@ -184,8 +184,12 @@ async def uploadResults():
             root.error('FTP error:', e)
 
 async def dispose():
+    print('Disposing',fPostId,fout,ferr,client)
     if fout and fPostId and ferr and client:
         await fout.flush()
         await fPostId.flush()
         await ferr.flush()
         await client.close()
+        await fout.close()
+        await ferr.close()
+        await fPostId.close()
