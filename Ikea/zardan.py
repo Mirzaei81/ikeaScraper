@@ -122,13 +122,14 @@ async def getItems():
                 body = f.read()
                 params: resend.Emails.SendParams = {
                     "from": "ZardaanBot@namakiplus.ir",
-                    "to": ["aam.mirzaei@gmail.com"],
+                    "to": ["aam.mirzaei@gmail.com",'Mobelikea@gmail.com'],
                     "subject": "Update pricing Info",
                     "html": "<strong>it works!</strong>",
                     "attachments":[resend.Attachment(content=list(body),filename="zardaan-"+datetime.now().strftime("%m-%d,%H:%M:%S")+".csv")]
                 }
                 email = resend.Emails.send(params)
                 root.info(email)
+                open(offersPath, "w").close()#truncate it for the new file
             break
         except Exception as e:
             root.critical("Failed getting items")
