@@ -1,5 +1,5 @@
 Unclosed client session
-client_session: <aiohttp.client.ClientSession object at 0x7f693b0b74d0>
+client_session: <aiohttp.client.ClientSession object at 0x7fa590edf4d0>
 Unclosed connector
-connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x7f693ab3edb0>, 74.580268984)])']
-connector: <aiohttp.connector.TCPConnector object at 0x7f693b0b7750>
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x7fa590952db0>, 374.225150032)])']
+connector: <aiohttp.connector.TCPConnector object at 0x7fa590edf750>
