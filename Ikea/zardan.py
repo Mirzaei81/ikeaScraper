@@ -21,8 +21,6 @@ rot_handler    = RotatingFileHandler("zardan.logger",mode="w")   # The blocking 
 queue_listener = QueueListener(log_queue, 
                                rot_handler)
 queue_listener.start()
-SECRET = os.getenv("SECRET")
-assert SECRET is not None
 coockie = {"pxcelPage_c01002":"1"}
 headers = {
         'Content-Type': 'application/json',
@@ -95,7 +93,7 @@ async def init():
     fout = await aiofiles.open(offersPath,"a+", encoding="utf-8-sig")
     client = ClientSession("https://zardaan.com",cookies=coockie,headers=headers)
     ferr = await aiofiles.open('zarrdanProuct.txt',"w", encoding="utf-8-sig")
-    fPostId = await aiofiles.open("post.id","w+")
+    fPostId = await aiofiles.open("post.id","r+")
     await fPostId.seek(0)
     postId = await fPostId.read()
     if len(postId)==0:
@@ -123,8 +121,8 @@ async def getItems():
                 params: resend.Emails.SendParams = {
                     "from": "ZardaanBot@namakiplus.ir",
                     "to": ["aam.mirzaei@gmail.com",'Mobelikea@gmail.com'],
-                    "subject": "Update pricing Info",
-                    "html": "<strong>it works!</strong>",
+                    "subject": "با موفقیت بروز شد",
+                    "html": "<strong>قیمت ها در فایل پیوست مشاهده شود</strong>",
                     "attachments":[resend.Attachment(content=list(body),filename="zardaan-"+datetime.now().strftime("%m-%d,%H:%M:%S")+".csv")]
                 }
                 email = resend.Emails.send(params)

@@ -46,6 +46,8 @@ async def getStock(sku:int):
     path = "/availabilities/ru/om?itemNos={}&expand=StoresList".format(sku)
     res = await stockSession.get(path)
     data = await res.json()
+    if "availabilities" not in  data:
+        return None
     return data["availabilities"][0]['buyingOption']["cashCarry"]["availability"]["quantity"]
 async def getPrice(sku:int):
     assert priceSession is not None

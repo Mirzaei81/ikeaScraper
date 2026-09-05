@@ -1,4 +1,6 @@
 import asyncio
+from dotenv import load_dotenv
+load_dotenv()
 from Ikea.ikea_parser import getProductDetail,init as ikeaInit
 from Ikea.zardan import updateItem,getItems,init as zardanInit,dispose
 async def main():
