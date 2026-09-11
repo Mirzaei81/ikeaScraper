@@ -53,9 +53,7 @@ async def log_error(sku,stock,name,id,reason,tag=""):
     await writer.writerow([sku,stock,name,reason,tag])
     await fPostId.seek(0)
     await fPostId.write(id)
-    await fPostId.truncate
-
-
+    await fPostId.truncate()
     res =await client.post(
         'https://zardaan.com/wp-json/wc/v3/set_draft',
         json={"id":id},
@@ -101,20 +99,17 @@ async def init():
 
 
     writer = AsyncWriter(fout,quoting=QUOTE_NONNUMERIC)
-    await writer.writerow(["name","tag","sku","stock"])
+    await writer.writerow(["sku","name","rial","toman","stock","status"])
     await getmnscwPrices()
     
 async def getItems():
     global postId
     while (retry:=0)<5:
         try:
-            response =await client.get(url,params={'id':postId})
+            response = await client.get(url,params={'id':postId})
             async for item in ijson.items_async(response.content,"response.item"):
                 yield item
              #send email here and remove offersPath buffer
-            await fPostId.seek(0)
-            await fPostId.write("100000")
-            await fPostId.truncate()
             await fout.flush()
             with open(offersPath,"rb") as f:
                 body = f.read()
@@ -132,17 +127,17 @@ async def getItems():
         except Exception as e:
             root.critical("Failed getting items")
             retry+=1
-rows =0 
 async def updateItem(base_item:dict,price:str,stock:str,tag:str):
-    global rows
     assert writer is not None
     assert ferr is not None
     url = "https://zardaan.com/wp-json/wc/v3/price/"
     curId = base_item["currency_id"]
+    tomanPrice = round(price)*currencies[curId]["rate"]*100
+    basePrice = round(price) * 10
     payload = {
         "id": base_item["post_id"],
-        "price": round(price)*currencies[curId]["rate"]*100,
-        "base":round(price) * 10,
+        "price": tomanPrice,
+        "base": basePrice,
         "stock":stock,
     }
     headers = {
@@ -155,33 +150,14 @@ async def updateItem(base_item:dict,price:str,stock:str,tag:str):
             response =await client.post(url, headers=headers,json=payload,timeout=1000*2**retry)
             rsText = await response.text()
             root.info(rsText)
-            await writer.writerow([base_item["SKU"],stock,base_item["name"],"success",tag])
+            await writer.writerow([base_item["SKU"],base_item["name"],basePrice,tomanPrice,stock,"success"])
             await fPostId.seek(0)
             await fPostId.write(base_item['post_id'])
             await fPostId.truncate()
-            rows+=1
-            if rows%100==0:
-                await fout.flush()
             break
         except Exception as e:
             print(e)
             retry+=1
-async def uploadResults():
-    username=  os.getenv('FTP_USER')
-    assert username is not None
-    password =  os.getenv('FTP_PASS')
-    assert password is not None
-    assert fout is not None
-    await fout.flush()
-    await fout.close()
-    async with aioftp.Client.context('ftp.zardaan.com',21,username,password) as ftp:
-        try:
-            filename = 'offers.csv'
-            await ftp.upload(filename, offersPath)
-            root.info("write file succesfuly")
-        except aioftp.errors as e:
-            root.error('FTP error:', e)
-
 async def dispose():
     print('Disposing',fPostId,fout,ferr,client)
     if fout and fPostId and ferr and client:
