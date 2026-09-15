@@ -3,8 +3,7 @@ from datetime import datetime
 import aiofiles
 from aiofiles.threadpool.text import AsyncTextIOWrapper 
 from aiohttp import BasicAuth, ClientSession
-import aioftp
-import ijson
+import json
 import os 
 from aiocsv import AsyncWriter
 from csv import QUOTE_NONNUMERIC
@@ -29,14 +28,12 @@ headers = {
 KEY,SECRET_KEY = os.getenv("WOOCOMERCE_KEY"),os.getenv("WOOCOMERCE_SECRET")
 assert KEY is not None
 assert SECRET_KEY is not None
-
+from pathlib import Path
 
 RESEND_API= os.getenv("RESEND_API")
 assert RESEND_API is not None
 resend.api_key = RESEND_API
 
-
-url = "https://zardaan.com/wp-json/wc/v3/get_nav/"
 
 auth = BasicAuth(KEY,password=SECRET_KEY)
 
@@ -53,47 +50,27 @@ async def log_error(sku,stock,name,id,reason,tag=""):
     await writer.writerow([sku,stock,name,reason,tag])
     await fPostId.seek(0)
     await fPostId.write(id)
-    await fPostId.truncate
-
-
+    await fPostId.truncate()
     res =await client.post(
-        'https://zardaan.com/wp-json/wc/v3/set_draft',
+        'https://cors.io/?url=https://zardaan.com/wp-json/wc/v3/set_draft',
         json={"id":id},
         args={"id":id}
         )
     root.warning(await res.text())
-currencies = {}
-async def getmnscwPrices():
-    global currencies
-    url = "https://zardaan.com/wp-json/mnswmc/v1/currency/9f8e7adfcdb7c395d33d08fcd968ade8"
-
-    headers = {
-        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-        'accept-language': 'en-US,en;q=0.9',
-        'cache-control': 'max-age=0',
-        'priority': 'u=0, i',
-        'sec-ch-ua': '"Not(A:Brand";v="8", "Chromium";v="144", "Google Chrome";v="144"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Linux"',
-        'sec-fetch-dest': 'document',
-        'sec-fetch-mode': 'navigate',
-        'sec-fetch-site': 'none',
-        'sec-fetch-user': '?1',
-        'upgrade-insecure-requests': '1',
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
-        'cookie': 'pxcelPage_c01002=1; wp-settings-2=libraryContent%3Dbrowse%26editor%3Dtinymce%26posts_list_mode%3Dlist%26advImgDetails%3Dhide; wp-settings-time-2=1779256642; d_user_session=3d6c016bd7bef3249359408a469a2850aa5fffc5e88a388b67d8fc68c0898972522466f4c5d446e6b92ba6b918b5cda9c5946eabbb392b3181f5ffb6983d4dc5',
-    }
-
-    response = await ClientSession().get(url, headers=headers,timeout=1000)
-
-    currencies = await response.json()
+currencies = {"10347":{"name":"کالای کوچک","rate":150000},"23110":{"name":"کالای درشت","rate":160000},"43946":{"name":"خرید قدیم","rate":150000},"43947":{"name":"سفارش کالای کوچک","rate":150000},"43948":{"name":"سفارش کالای درشت","rate":160000},"44085":{"name":"قیمت درهم دبی","rate":40165},"44915":{"name":"دلار آمریکا","rate":145000},"51450":{"name":"لیر ترکیه","rate":12760},"51451":{"name":"کالای غیر ایکیا","rate":1},"52114":{"name":"کالای خیلی درشت","rate":165000},"54062":{"name":"کالای کوچک رقابتی","rate":150000},"54063":{"name":"کالای درشت رقابتی","rate":160000},"61923":{"name":"مسافری دبی","rate":150000}}
 
 async def init():
     global ferr,writer,client,fout,fPostId,postId
     fout = await aiofiles.open(offersPath,"a+", encoding="utf-8-sig")
-    client = ClientSession("https://zardaan.com",cookies=coockie,headers=headers)
+    client = ClientSession('https://cors.io/?url=https://zardaan.com',cookies=coockie,headers=headers)
     ferr = await aiofiles.open('zarrdanProuct.txt',"w", encoding="utf-8-sig")
-    fPostId = await aiofiles.open("post.id","r+")
+    try:
+        post_id_path = Path(__file__).parent.parent / "post.id"
+        fPostId = await aiofiles.open(post_id_path,"r+")
+    except Exception as e:
+        root.critical(e)
+        print(e)
+        raise e
     await fPostId.seek(0)
     postId = await fPostId.read()
     if len(postId)==0:
@@ -101,20 +78,17 @@ async def init():
 
 
     writer = AsyncWriter(fout,quoting=QUOTE_NONNUMERIC)
-    await writer.writerow(["name","tag","sku","stock"])
-    await getmnscwPrices()
+    await writer.writerow(["sku","name","rial","toman","stock","status"])
     
 async def getItems():
     global postId
     while (retry:=0)<5:
         try:
-            response =await client.get(url,params={'id':postId})
-            async for item in ijson.items_async(response.content,"response.item"):
+            corsres = await client.get('https://cors.io/?url=https://zardaan.com/wp-json/wc/v3/get_nav/',params={'id':postId})
+            response = await corsres.json()
+            for item in json.loads(response['body'])['response']:
                 yield item
              #send email here and remove offersPath buffer
-            await fPostId.seek(0)
-            await fPostId.write("100000")
-            await fPostId.truncate()
             await fout.flush()
             with open(offersPath,"rb") as f:
                 body = f.read()
@@ -132,17 +106,17 @@ async def getItems():
         except Exception as e:
             root.critical("Failed getting items")
             retry+=1
-rows =0 
 async def updateItem(base_item:dict,price:str,stock:str,tag:str):
-    global rows
     assert writer is not None
     assert ferr is not None
-    url = "https://zardaan.com/wp-json/wc/v3/price/"
+    url = "https://cors.io/?url=https://zardaan.com/wp-json/wc/v3/price/"
     curId = base_item["currency_id"]
+    tomanPrice = round(price)*currencies[curId]["rate"]*100
+    basePrice = round(price) * 10
     payload = {
         "id": base_item["post_id"],
-        "price": round(price)*currencies[curId]["rate"]*100,
-        "base":round(price) * 10,
+        "price": tomanPrice,
+        "base": basePrice,
         "stock":stock,
     }
     headers = {
@@ -155,35 +129,15 @@ async def updateItem(base_item:dict,price:str,stock:str,tag:str):
             response =await client.post(url, headers=headers,json=payload,timeout=1000*2**retry)
             rsText = await response.text()
             root.info(rsText)
-            await writer.writerow([base_item["SKU"],stock,base_item["name"],"success",tag])
+            await writer.writerow([base_item["SKU"],base_item["name"],basePrice,tomanPrice,stock,"success"])
             await fPostId.seek(0)
             await fPostId.write(base_item['post_id'])
             await fPostId.truncate()
-            rows+=1
-            if rows%100==0:
-                await fout.flush()
             break
         except Exception as e:
             print(e)
             retry+=1
-async def uploadResults():
-    username=  os.getenv('FTP_USER')
-    assert username is not None
-    password =  os.getenv('FTP_PASS')
-    assert password is not None
-    assert fout is not None
-    await fout.flush()
-    await fout.close()
-    async with aioftp.Client.context('ftp.zardaan.com',21,username,password) as ftp:
-        try:
-            filename = 'offers.csv'
-            await ftp.upload(filename, offersPath)
-            root.info("write file succesfuly")
-        except aioftp.errors as e:
-            root.error('FTP error:', e)
-
 async def dispose():
-    print('Disposing',fPostId,fout,ferr,client)
     if fout and fPostId and ferr and client:
         await fout.flush()
         await fPostId.flush()
