@@ -6,9 +6,9 @@ from .zardan import root
 import traceback 
 
 from Ikea.zardan import log_error 
-DEBUG = os.getenv("Debug","False")=="True"
+DEBUG = os.getenv("Debug","False")=="False"
 if DEBUG:
-    proxy ="http://127.0.0.1:10808"
+    proxy =None
 else:
     proxy = None
 IKEA_BODY = '{{"searchParameters":{{"input":{sku},"type":"QUERY"}},"components":[{{"component":"PRIMARY_AREA"}}]}}'
@@ -46,12 +46,17 @@ async def getStock(sku:int):
     path = "/availabilities/ru/om?itemNos={}&expand=StoresList".format(sku)
     res = await stockSession.get(path)
     data = await res.json()
-    if "availabilities" not in  data:
+    if "availabilities" not in  data or 'availability' not in data["availabilities"][0]['buyingOption']["cashCarry"]:
         return None
     return data["availabilities"][0]['buyingOption']["cashCarry"]["availability"]["quantity"]
 async def getPrice(sku:int):
     assert priceSession is not None
-    if not sku:return None
+    if not sku:return None,None
+    
+    try:
+        sku =int(sku)
+    except ValueError:
+        return None,None
     path = "/om/en/search"
     params = {
         'c': 'sr',

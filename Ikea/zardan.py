@@ -54,7 +54,6 @@ async def log_error(sku,stock,name,id,reason,tag=""):
     res =await client.post(
         'https://cors.io/?url=https://zardaan.com/wp-json/wc/v3/set_draft',
         json={"id":id},
-        args={"id":id}
         )
     root.warning(await res.text())
 currencies = {"10347":{"name":"کالای کوچک","rate":150000},"23110":{"name":"کالای درشت","rate":160000},"43946":{"name":"خرید قدیم","rate":150000},"43947":{"name":"سفارش کالای کوچک","rate":150000},"43948":{"name":"سفارش کالای درشت","rate":160000},"44085":{"name":"قیمت درهم دبی","rate":40165},"44915":{"name":"دلار آمریکا","rate":145000},"51450":{"name":"لیر ترکیه","rate":12760},"51451":{"name":"کالای غیر ایکیا","rate":1},"52114":{"name":"کالای خیلی درشت","rate":165000},"54062":{"name":"کالای کوچک رقابتی","rate":150000},"54063":{"name":"کالای درشت رقابتی","rate":160000},"61923":{"name":"مسافری دبی","rate":150000}}
