@@ -11,12 +11,22 @@ import queue
 from logging.handlers import QueueHandler,QueueListener,RotatingFileHandler
 import logging
 import resend
+import sys
 
 log_queue     = queue.Queue()
 queue_handler = QueueHandler(log_queue)  
 root = logging.getLogger()
 root.addHandler(queue_handler)
-rot_handler    = RotatingFileHandler("zardan.logger",mode="w")   # The blocking handler.
+
+rot_handler     = None
+
+offersPath = "offers.csv"
+if sys.platform.startswith("win"):
+   rot_handler =  rotHandler = RotatingFileHandler("/data/zardan.logger",mode="w")   # The blocking handler.
+elif sys.platform.startswith("linux"):
+   rot_handler = RotatingFileHandler("/data/zardan.logger",mode="w")   # The blocking handler.
+   offersPath = "/data/offers.csv"
+
 queue_listener = QueueListener(log_queue, 
                                rot_handler)
 queue_listener.start()
@@ -37,7 +47,6 @@ resend.api_key = RESEND_API
 
 auth = BasicAuth(KEY,password=SECRET_KEY)
 
-offersPath = "offers.csv"
 client:ClientSession|None = None
 fout:AsyncTextIOWrapper|None = None 
 ferr:AsyncTextIOWrapper|None = None
@@ -64,7 +73,10 @@ async def init():
     client = ClientSession('https://cors.io/?url=https://zardaan.com',cookies=coockie,headers=headers)
     ferr = await aiofiles.open('zarrdanProuct.txt',"w", encoding="utf-8-sig")
     try:
-        post_id_path = Path(__file__).parent.parent / "post.id"
+        if sys.platform.startswith("linux"):
+            post_id_path = "/data/post.id"
+        else:
+            post_id_path = Path(__file__).parent.parent / "post.id"
         fPostId = await aiofiles.open(post_id_path,"r+")
     except Exception as e:
         root.critical(e)
