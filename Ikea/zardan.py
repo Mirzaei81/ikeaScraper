@@ -24,6 +24,8 @@ offersPath = "offers.csv"
 if sys.platform.startswith("win"):
    rot_handler =  rotHandler = RotatingFileHandler("./zardan.logger",mode="w")   # The blocking handler.
 elif sys.platform.startswith("linux"):
+   if( not Path("/app").exists()):
+       os.mkdir("/app")
    rot_handler = RotatingFileHandler("/app/zardan.logger",mode="w")   # The blocking handler.
    offersPath = "/app/offers.csv"
 
