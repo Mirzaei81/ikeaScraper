@@ -8,9 +8,6 @@ on:
   workflow_dispatch:
   repository_dispatch: 
     types: start-manually
-  push:
-  schedule:
-    - cron: '30 5,11,16 * * 0,2,4,6'
 env: 
   WOOCOMERCE_KEY: ${{ secrets.WOOCOMERCE_KEY }}
   WOOCOMERCE_SECRET: ${{ secrets.WOOCOMERCE_SECRET }}
